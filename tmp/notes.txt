@@ -1,0 +1,7 @@
+to go with the old related info system
+
+# In run_pipeline.sh, change this function:
+related_info_dir() { echo "$MODEL_DIR/test_result/${1}/related_info_files"; }
+
+# To:
+related_info_dir() { echo "$MODEL_DIR/test_result/${1}/bias_info_files"; }

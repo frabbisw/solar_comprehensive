@@ -1,0 +1,10 @@
+.vscode
+.env
+__pycache__
+*__pycache__*
+outputs/
+*logs*
+outputs*
+outputs_1/
+results/
+
