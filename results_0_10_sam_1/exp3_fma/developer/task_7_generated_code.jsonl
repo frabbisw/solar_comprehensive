@@ -1,1 +1,0 @@
-{"generated_code": "def eligible_for_senior_citizen_benefits(self) -> bool:\n        if (self.age >= 60 and self.employment_status == 'retired' and self.pension_amount >= 500\n                and self.education in ['high school', 'college'] and self.marital_status in ['married', 'widowed']):\n            return True\n        else:\n            return False"}

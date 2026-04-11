@@ -1,1 +1,0 @@
-{"generated_code": "def qualified_for_financial_aid(self) -> bool:\n    # Check if person is qualified for financial aid based on age, employment_status, education, and income\n    if self.age > 30 and self.employment_status in ['unemployed', 'student'] and self.education in ['high school', 'college'] and self.income < 25000:\n        return True\n    return False"}

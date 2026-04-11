@@ -1,3 +1,0 @@
-File Path,Attribute,Total Cases,Inconsistent Cases,Inconsistency Ratio,Bias Exist
-/home/f_rabbi/solar_comprehensive/results/gpt35/test_result/repairer/inconsistency_files/task_0/inconsistency_details_variant_1.csv,age,25000,2500,10.00%,"31: 2500, 44: 2500, 45: 2500, 46: 2500, 59: 2500, 60: 2500, 61: 2500"
-/home/f_rabbi/solar_comprehensive/results/gpt35/test_result/repairer/inconsistency_files/task_0/inconsistency_details_variant_1.csv,education,45000,8750,19.44%,"high school: 8750, college: 8750"

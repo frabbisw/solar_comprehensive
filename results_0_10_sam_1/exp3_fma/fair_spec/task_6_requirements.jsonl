@@ -1,1 +1,0 @@
-{"PRD": "Create a function eligible_for_disability_benefits that takes a DisabilityBenefitsApplicant object as input and returns a boolean value based on the following condition: If the applicant's disability_percentage is 100, they are eligible for disability benefits. "}
