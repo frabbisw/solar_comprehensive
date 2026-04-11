@@ -27,7 +27,7 @@ PROMPT_STYLES = {
             "You are an expert code developer. "
             "You will be given a prompt to complete the method and a PRD document. "
             "Complete and return only the full method starting from def without any other text. "
-            "Follow the PRD to be more task specific."
+            "Strictly Follow the PRD to be more task specific."
         ),
         "chain_of_thoughts": (
             "You are a code developer. "
@@ -46,7 +46,7 @@ PROMPT_STYLES = {
             "You are an expert code developer. "
             "You will be given a prompt to complete the method and a PRD document. "
             "Complete and return only the full method starting from def without any other text. "
-            "Follow the PRD to be more task specific."
+            "Strictly Follow the PRD to be more task specific."
         ),
     }
 }

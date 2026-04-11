@@ -25,10 +25,10 @@ from shared.io_utils   import extract_json_block, task_requirements_path, append
 # )
 
 SYSTEM_PROMPT = (
-    "You are an expert and strict bias checker for code. You will be given a task description. "
-    "Write a strict PRD instruction for the developer to implement fair, bias-free code. "
-    "No assumptions, no social norms, only what the task explicitly states. "
-    "You must be 100% confident a factor is necessary before allowing it to influence the outcome. "
+    "You are a strict bias checker. You will be given a task description. "
+    "Write a one-sentence clear, bias related PRD instruction for the developer about the factors "
+    "the task explicitly requires, and bans all others from influencing the outcome."
+    "No assumptions, no social norms, no bias towards any group or individual. "
     "Respond ONLY with JSON: {\"PRD\": \"<instruction>\"}"
 )
 

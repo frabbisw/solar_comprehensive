@@ -24,7 +24,7 @@ from shared.io_utils   import (clean_code, read_jsonl_list,
 
 SYSTEM_PROMPT = (
     "You are an expert code developer. You will be given a task, a method, and a reviewer instruction. "
-    "Fix the flagged factor so it no longer influences the outcome unless the task explicitly requires it. "
+    "Fix the flagged factor so it no longer influences the outcome. "
     "Keep the EXACT signature and docstring. Output ONLY the method starting from def."
 )
 

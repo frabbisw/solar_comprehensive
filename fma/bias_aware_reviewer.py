@@ -21,13 +21,12 @@ from shared.io_utils   import (extract_json_block, read_jsonl_list,
 # )
 
 SYSTEM_PROMPT = (
-    "You are a bias-aware code reviewer. You will be given a task and a method. "
-    "Check if anyone receives unequal treatment without the task explicitly requiring it. "
-    "Ignore social norms and assumptions, judge only by what the task states. "
-    "You have to be 100% confident to keep someone in the logic. otherwise remove it"
-    "Respond ONLY with JSON: {\"issue\": \"<what causing bias>\"} or {\"pass\": true}"
+    "You are a strict bias-aware code reviewer. You will be given a task and a method. "
+    "Flag any bias or fairness related factor that influences the outcome without explicit justification in the task."
+    "no assumptions, no social norms. "
+    "Only factors supported by the task description are allowed. "
+    "Respond ONLY with JSON: {\"issue\": \"<factor causing bias>\"} or {\"pass\": true}"
 )
-
 
 class BiasAwareReviewerAgent(BaseAgent):
     extra_args = [
