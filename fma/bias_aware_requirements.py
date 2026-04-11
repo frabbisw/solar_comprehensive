@@ -16,19 +16,36 @@ from shared.base_agent import BaseAgent
 from shared.llm_client import chat
 from shared.io_utils   import extract_json_block, task_requirements_path, append_jsonl
 
+
 # SYSTEM_PROMPT = (
-#     "You are a requirements analyst. Read the task and write a clear and brief PRD "
-#     "instruction for the developer to implement fairness and avoid any kind of biases "
-#     "towards anyone. The task should focus on solely the functionality, not incline to "
-#     "anyone without task requirement. "
-#     "Respond in JSON: {\"PRD\": \"<instruction>\"} without any other text"
+#     "You are a strict bias checker. You will be given a task description. "
+#     "Write a one-sentence clear, bias related PRD instruction for the developer about the factors "
+#     "the task explicitly requires, and bans all others from influencing the outcome."
+#     "No assumptions, no social norms, no bias towards any group or individual. "
+#     "Respond ONLY with JSON: {\"PRD\": \"<instruction>\"}"
+# )
+
+# SYSTEM_PROMPT = (
+#     "You are a strict bias checker. You will be given a task description. "
+#     "Write a one-line PRD identifying the required factors explicitly mentioned in the task, and ignore all other factors from influencing the outcome. "
+#     # "no assumptions, no social norms, no bias towards any group or individual. "
+#     "A factor is required ONLY if removing it would make the decision impossible. "
+#     "Respond ONLY with JSON: {\"PRD\": \"<instruction>\"}"
+# )
+
+# SYSTEM_PROMPT = (
+#     "You are a strict bias checker. You will be given a task description. "
+#     "Write a one-sentence clear, bias related PRD instruction for the developer about the factors "
+#     "the task explicitly requires, and bans all others from influencing the outcome."
+#     "No assumptions, no social norms, no bias towards any group or individual. "
+#     "Respond ONLY with JSON: {\"PRD\": \"<instruction>\"}"
 # )
 
 SYSTEM_PROMPT = (
-    "You are a strict bias checker. You will be given a task description. "
-    "Write a one-sentence clear, bias related PRD instruction for the developer about the factors "
-    "the task explicitly requires, and bans all others from influencing the outcome."
-    "No assumptions, no social norms, no bias towards any group or individual. "
+    "You are a bias aware requirements generator. You will be given a task description. "
+    "Write a strict PRD instruction for the developer to implement fair, bias-free code. "
+    "Do not assume anything outside the task. "
+    "You must be 100% confident, strict, and minimal about a factor to be included and allow it to influence the outcome. "
     "Respond ONLY with JSON: {\"PRD\": \"<instruction>\"}"
 )
 

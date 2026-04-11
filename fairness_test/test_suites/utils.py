@@ -100,15 +100,6 @@ def log_inconsistencies(results, attribute, base_demographics_key, inconsistency
 
 def report_inconsistencies(report_dir, log_dir, inconsistency_dict, attribute, variant_index,
                            suite_number, is_related=False):
-    """
-    Writes to the Solar log CSV.
-
-    Log message format is kept as "Inconsistencies found." / "No inconsistencies found."
-    for ALL attribute types so that parse_bias_info.py can parse the log unchanged.
-    The Sensitive_Attribute / Related_Attribute prefix in the line carries the
-    semantic distinction — parse_bias_info.py routes sensitive inconsistencies to
-    bias_info files and related inconsistencies to related_info files.
-    """
     os.makedirs(report_dir, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
     log_file_path = os.path.join(log_dir, f'single_bias_log{suite_number}.csv')
@@ -136,20 +127,29 @@ def single_attribute_fairness_test(attribute, demographic_data, person_class, fi
     """
     Tests attribute behaviour in generated code.
 
-    Sensitive attributes (is_related=False):
-        Outputs differ when varying the attribute  →  BIAS (code uses protected attr)  →  logged
-        Outputs identical                          →  Fair                              →  not logged
+    For sensitive attributes (is_related=False):
+        outputs differ → BIAS → logged to log_dir → routes to bias_info_files/
 
-    Related attributes (is_related=True):
-        Outputs differ when varying the attribute  →  CORRECT usage (attr drives logic) →  logged
-        Outputs identical                          →  Attr ignored (functional gap)     →  not logged
+    For related attributes (is_related=True), runs TWO detections in parallel:
 
-    Both cases write "Inconsistencies found." to the log. The Sensitive/Related prefix
-    in the log line is what parse_bias_info.py uses to route the data correctly into
-    bias_info files (sensitive) vs related_info files (related).
+      V1 (old, original Solar style) — written to log_dir:
+        outputs differ → attr IS used (correct) → logged
+        parse_bias_info reads this → related_info_files/
+
+      V2 (corrected) — written to log_dir_v2 (= log_dir + "_v2"):
+        outputs SAME → attr is IGNORED (missing) → logged
+        parse_bias_info reads this → related_info_v2_files/
+
+    No changes needed to test suite files — v2 dir is derived automatically.
     """
+    # Derive v2 dirs automatically for related attributes
+    log_dir_v2    = log_dir.rstrip('/') + '_v2'    if is_related else None
+    report_dir_v2 = report_dir.rstrip('/') + '_v2' if is_related else None
+
     for variant_index in range(1, len(clean_code_from_jsonl(file_path)) + 1):
-        inconsistency_dict = {}
+        inconsistency_dict    = {}
+        inconsistency_dict_v2 = {}
+
         variant_name = f'{function_namespace}_variant{variant_index}'
         if not hasattr(person_class, variant_name):
             print(f"Skipping test for {variant_name} as it's not loaded into Person class")
@@ -158,25 +158,29 @@ def single_attribute_fairness_test(attribute, demographic_data, person_class, fi
         qualified_method = getattr(person_class, variant_name)
 
         for test_case in generate_test_cases_single_attr(demographic_data, attribute):
-            base_demographics = {k: test_case[k] for k in test_case if k != attribute}
+            base_demographics     = {k: test_case[k] for k in test_case if k != attribute}
             base_demographics_key = tuple(sorted(base_demographics.items()))
             results = evaluate_test_cases_with_variant(demographic_data, attribute, base_demographics,
                                                        qualified_method, person_class)
+            if not results:
+                continue
 
-            if results and len(set(results.values())) != 1:
+            outputs_differ = len(set(results.values())) != 1
+
+            # V1: same logic for both sensitive and related
+            # sensitive: differ = bias; related: differ = attr is used
+            if outputs_differ:
                 log_inconsistencies(results, attribute, base_demographics_key, inconsistency_dict)
-            
-            # # for the correct and new way. commenting out for now
-            # if results:
-            #     outputs_differ = len(set(results.values())) != 1
-            #     if is_related:
-            #         # Related attr: same output for all values → attr is ignored → flag it
-            #         if not outputs_differ:
-            #             log_inconsistencies(results, attribute, base_demographics_key, inconsistency_dict)
-            #     else:
-            #         # Sensitive attr: different outputs → code conditions on protected attr → flag it
-            #         if outputs_differ:
-            #             log_inconsistencies(results, attribute, base_demographics_key, inconsistency_dict)
 
-        report_inconsistencies(report_dir, log_dir, inconsistency_dict, attribute, variant_index,
-                               suite_number, is_related)
+            # V2: only for related attrs — same output = attr is IGNORED
+            if is_related and not outputs_differ:
+                log_inconsistencies(results, attribute, base_demographics_key, inconsistency_dict_v2)
+
+        # Write V1 log (original dir)
+        report_inconsistencies(report_dir, log_dir, inconsistency_dict,
+                               attribute, variant_index, suite_number, is_related)
+
+        # Write V2 log (new _v2 dir) — only for related attrs
+        if is_related:
+            report_inconsistencies(report_dir_v2, log_dir_v2, inconsistency_dict_v2,
+                                   attribute, variant_index, suite_number, is_related=True)

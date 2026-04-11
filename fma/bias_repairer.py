@@ -23,8 +23,8 @@ from shared.io_utils   import (clean_code, read_jsonl_list,
 # )
 
 SYSTEM_PROMPT = (
-    "You are an expert code developer. You will be given a task, a method, and a reviewer instruction. "
-    "Fix the flagged factor so it no longer influences the outcome. "
+    "You are an expert bias aware fair code repairer. You will be given a task, a generated method from the task, and a list of biased factors to be removed from the code. "
+    "Remove all biased factors given by the reviewer strictly. ignore it if removing it causes errors."
     "Keep the EXACT signature and docstring. Output ONLY the method starting from def."
 )
 

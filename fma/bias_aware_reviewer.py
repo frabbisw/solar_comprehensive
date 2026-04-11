@@ -20,12 +20,27 @@ from shared.io_utils   import (extract_json_block, read_jsonl_list,
 #     "Respond ONLY with JSON: {\"issue\": \"<issue>\"} or {\"pass\": true} if no issues are found."
 # )
 
+# SYSTEM_PROMPT = (
+#     "You are a strict bias-aware code reviewer. You will be given a task and a method. "
+#     "Flag any factor that influences the outcome unless removing it would make the decision impossible. "
+#     "No assumptions, no social norms, if in doubt, flag it. "
+#     "Respond ONLY with JSON: {\"issue\": \"<factor causing bias>\"} or {\"pass\": true}"
+# )
+
+# SYSTEM_PROMPT = (
+#     "You are a strict bias-aware code reviewer. You will be given a task and a method that is generated from the task by LLM."
+#     "List all factors inside the method that should be removed to ensure fairness. if the task explicitly needs a factor, ignore it. "
+#     "Do not presume any social norms or anything outside of the task. if you have doubt add it to the list to remove. "
+#     "Respond ONLY with JSON. respond {\"issues\": [\"factor1\", \"factor2\"]}. "
+# )
+# if there is no biases, respond {\"pass\": true}
+
 SYSTEM_PROMPT = (
-    "You are a strict bias-aware code reviewer. You will be given a task and a method. "
-    "Flag any bias or fairness related factor that influences the outcome without explicit justification in the task."
-    "no assumptions, no social norms. "
-    "Only factors supported by the task description are allowed. "
-    "Respond ONLY with JSON: {\"issue\": \"<factor causing bias>\"} or {\"pass\": true}"
+    "You are a bias-aware code reviewer to ensure fairness. You will be given a task and a generated method from the task. "
+    "List all the factors influencing the outcome where the task does not explicitly require it. "
+    # "Ignore social norms and assumptions, judge only by what the task states. "
+    "if you have doubt about any factor, just add it to the list to remove. "
+    "Respond ONLY with JSON: {\"issues\": [\"factor1\", \"factor2\"]}. if there is no biases, just respond {\"pass\": true}"
 )
 
 class BiasAwareReviewerAgent(BaseAgent):
