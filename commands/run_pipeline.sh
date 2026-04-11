@@ -15,7 +15,6 @@
 #   --start      first task index inclusive          (default: 0)
 #   --end        last task index exclusive           (default: 343)
 #   --rounds     FMA repair rounds 1-3  [Exp 3]     (default: 1)
-#   --with_spec  enable upstream spec agents [Exp 3]
 #   --solar_dir  Solar fairness_test/ directory     (required Exp 2+3)
 #   --model_dir  Solar results directory            (required Exp 2+3)
 #
@@ -24,7 +23,7 @@
 # Examples:
 #   bash commands/run_pipeline.sh --exp 1 --style default
 #
-#   bash commands/run_pipeline.sh --exp 3 --start 0 --end 5 \
+#   bash commands/run_pipeline.sh --exp 3 --start 0 --end 2 --samples 1 \
 #       --solar_dir ~/solar_comprehensive/fairness_test \
 #       --model_dir ~/solar_comprehensive/results/gpt35
 # =============================================================================
@@ -39,7 +38,6 @@ MODEL="gpt"
 START=0
 END=343
 ROUNDS=1
-WITH_SPEC=false
 SOLAR_DIR=""
 MODEL_DIR=""
 
@@ -55,7 +53,6 @@ while [[ $# -gt 0 ]]; do
     --start)     START="$2";     shift 2 ;;
     --end)       END="$2";       shift 2 ;;
     --rounds)    ROUNDS="$2";    shift 2 ;;
-    --with_spec) WITH_SPEC=true; shift   ;;
     --solar_dir) SOLAR_DIR="$2"; shift 2 ;;
     --model_dir) MODEL_DIR="$2"; shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
@@ -102,7 +99,6 @@ run_solar() {
   pytest
   cd "$REPO"
   python "$SOLAR_DIR/parse_bias_info.py" "$log_dir" "$bias_dir" "$SAMPLES"
-  # Run postprocess from SOLAR_DIR so "import test_suites.X" resolves
   cd "$SOLAR_DIR"
   python summary_result.py     "$MODEL_DIR" "$START" "$END" "$agent"
   python count_bias.py         "$MODEL_DIR" "$START" "$END" "$agent"
@@ -115,7 +111,6 @@ run_solar() {
 bias_dir()    { echo "$MODEL_DIR/test_result/${1}/bias_info_files"; }
 related_dir() { echo "$MODEL_DIR/test_result/${1}/related_info_files"; }
 
-# Common args passed to every python agent
 COMMON=(
   --prompts_file "$PROMPTS"
   --model        "$MODEL"
@@ -225,96 +220,48 @@ if [[ "$EXP" == "3" ]]; then
   [[ -z "$STYLE" ]] && STYLE="agent"
   require_solar
   BASE="$REPO/results/exp3_fma"
-  FUNC_SPEC_OUT="$BASE/func_spec"
   FAIR_SPEC_OUT="$BASE/fair_spec"
   DEV_OUT="$BASE/developer"
-  FUNC_REV_OUT="$BASE/func_reviewer"
-  FUNC_REP_OUT="$BASE/func_repaired"
   FMA_REV_OUT="$BASE/fma_reviewer"
   FMA_REP_OUT="$BASE/repairer"
-  mkdir -p "$DEV_OUT" "$FUNC_REV_OUT" "$FUNC_REP_OUT" "$FMA_REV_OUT" "$FMA_REP_OUT"
+  mkdir -p "$FAIR_SPEC_OUT" "$DEV_OUT" "$FMA_REV_OUT" "$FMA_REP_OUT"
 
   echo "$SEP"
-  echo "  EXP 3 – FMA dual pipeline"
+  echo "  EXP 3 – FMA pipeline"
   echo "  model=$MODEL  tasks=$START-$END  samples=$SAMPLES  rounds=$ROUNDS"
-  $WITH_SPEC && echo "  Upstream spec agents: ENABLED"
   echo "$SEP"
 
-  if $WITH_SPEC; then
-    mkdir -p "$FUNC_SPEC_OUT" "$FAIR_SPEC_OUT"
+  log_stage "A  Fairness Requirement Analyst" "$PROMPTS" "$FAIR_SPEC_OUT"
+  python "$FMA/bias_aware_requirements.py" \
+    --prompts_file "$PROMPTS" \
+    --output_dir   "$FAIR_SPEC_OUT" \
+    --model        "$MODEL" \
+    --num_samples  1 \
+    --start        "$START" \
+    --end          "$END"
 
-    log_stage "A  Functional Requirement Engineer" "$PROMPTS" "$FUNC_SPEC_OUT"
-    python "$AGENTS/requirements.py" \
-      --prompts_file "$PROMPTS" \
-      --output_dir   "$FUNC_SPEC_OUT" \
-      --model        "$MODEL" \
-      --num_samples  1 \
-      --start        "$START" \
-      --end          "$END"
-
-    log_stage "B  Fairness Requirement Analyst" "$PROMPTS" "$FAIR_SPEC_OUT"
-    python "$FMA/bias_aware_requirements.py" \
-      --prompts_file "$PROMPTS" \
-      --output_dir   "$FAIR_SPEC_OUT" \
-      --model        "$MODEL" \
-      --num_samples  1 \
-      --start        "$START" \
-      --end          "$END"
-  fi
-
-  log_stage "1  Developer" "$PROMPTS" "$DEV_OUT"
-  if $WITH_SPEC; then
-    python "$AGENTS/developer.py" "${COMMON[@]}" \
-      --prompt_style "$STYLE" \
-      --output_dir   "$DEV_OUT" \
-      --spec_dir     "$FAIR_SPEC_OUT"
-  else
-    python "$AGENTS/developer.py" "${COMMON[@]}" \
-      --prompt_style "$STYLE" \
-      --output_dir   "$DEV_OUT"
-  fi
+  log_stage "1  Developer" "$PROMPTS + $FAIR_SPEC_OUT" "$DEV_OUT"
+  python "$AGENTS/developer.py" "${COMMON[@]}" \
+    --prompt_style "$STYLE" \
+    --output_dir   "$DEV_OUT" \
+    --spec_dir     "$FAIR_SPEC_OUT"
 
   run_solar "developer" "$DEV_OUT"
-  BIAS_DIR="$(bias_dir developer)"
-  RELATED_DIR="$(related_dir developer)"
 
-  log_stage "2  Functional Reviewer" "$DEV_OUT" "$FUNC_REV_OUT"
-  python "$AGENTS/reviewer.py" \
-    --prompts_file "$PROMPTS" \
-    --code_dir     "$DEV_OUT" \
-    --output_dir   "$FUNC_REV_OUT" \
-    --model        "$MODEL" \
-    --temperature  0.0 \
-    --num_samples  "$SAMPLES" \
-    --start        "$START" \
-    --end          "$END"
-
-  log_stage "3  Functional Repairer" "$DEV_OUT + $FUNC_REV_OUT" "$FUNC_REP_OUT"
-  python "$AGENTS/repairer.py" \
-    --prompts_file "$PROMPTS" \
-    --code_dir     "$DEV_OUT" \
-    --review_dir   "$FUNC_REV_OUT" \
-    --output_dir   "$FUNC_REP_OUT" \
-    --model        "$MODEL" \
-    --temperature  0.0 \
-    --num_samples  "$SAMPLES" \
-    --start        "$START" \
-    --end          "$END"
-
-  log_stage "4  FMA Reviewer (oracle-free)" "$FUNC_REP_OUT" "$FMA_REV_OUT"
+  log_stage "2  FMA Reviewer" "$DEV_OUT" "$FMA_REV_OUT"
   python "$FMA/bias_aware_reviewer.py" \
     --prompts_file "$PROMPTS" \
-    --code_dir     "$FUNC_REP_OUT" \
+    --code_dir     "$DEV_OUT" \
     --output_dir   "$FMA_REV_OUT" \
     --model        "$MODEL" \
     --num_samples  "$SAMPLES" \
     --start        "$START" \
     --end          "$END"
 
-  log_stage "5  FMA Repairer" "$FUNC_REP_OUT + $FMA_REV_OUT" "$FMA_REP_OUT"
+  log_stage "3  FMA Repairer" "$DEV_OUT + $FMA_REV_OUT" "$FMA_REP_OUT"
   python "$FMA/bias_repairer.py" \
     --prompts_file "$PROMPTS" \
-    --code_dir     "$FUNC_REP_OUT" \
+    --code_dir     "$DEV_OUT" \
     --review_dir   "$FMA_REV_OUT" \
     --output_dir   "$FMA_REP_OUT" \
     --model        "$MODEL" \
@@ -327,7 +274,7 @@ if [[ "$EXP" == "3" ]]; then
 
   echo ""
   echo "$SEP"
-  echo "  CBS_before:    $DEV_OUT"
-  echo "  CBS_after_fma: $FMA_REP_OUT"
+  echo "  CBS_before:    $MODEL_DIR/test_result/developer/"
+  echo "  CBS_after_fma: $MODEL_DIR/test_result/repairer/"
   echo "$SEP"
 fi

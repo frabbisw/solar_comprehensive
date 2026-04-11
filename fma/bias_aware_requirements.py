@@ -16,12 +16,20 @@ from shared.base_agent import BaseAgent
 from shared.llm_client import chat
 from shared.io_utils   import extract_json_block, task_requirements_path, append_jsonl
 
+# SYSTEM_PROMPT = (
+#     "You are a requirements analyst. Read the task and write a clear and brief PRD "
+#     "instruction for the developer to implement fairness and avoid any kind of biases "
+#     "towards anyone. The task should focus on solely the functionality, not incline to "
+#     "anyone without task requirement. "
+#     "Respond in JSON: {\"PRD\": \"<instruction>\"} without any other text"
+# )
+
 SYSTEM_PROMPT = (
-    "You are a requirements analyst. Read the task and write a one-sentence "
-    "instruction for the developer to implement it fairly — without favouring "
-    "or disadvantaging anyone based on who they are. "
-    "Focus on what the task actually needs to decide, nothing more. "
-    "Respond ONLY with JSON: {\"instruction\": \"one sentence\"}"
+    "You are an expert and strict bias checker for code. You will be given a task description. "
+    "Write a strict PRD instruction for the developer to implement fair, bias-free code. "
+    "No assumptions, no social norms, only what the task explicitly states. "
+    "You must be 100% confident a factor is necessary before allowing it to influence the outcome. "
+    "Respond ONLY with JSON: {\"PRD\": \"<instruction>\"}"
 )
 
 class BiasAwareRequirementsAgent(BaseAgent):
@@ -34,7 +42,7 @@ class BiasAwareRequirementsAgent(BaseAgent):
         for _ in range(args.num_samples):
             raw  = chat(SYSTEM_PROMPT, prompt, model=args.model,
                         temperature=0.0, max_tokens=128)
-            spec = extract_json_block(raw) or {"instruction": "", "_parse_error": True}
+            spec = extract_json_block(raw) or {"PRD": "", "_parse_error": True}
             append_jsonl(out_path, spec)
 
 if __name__ == "__main__":

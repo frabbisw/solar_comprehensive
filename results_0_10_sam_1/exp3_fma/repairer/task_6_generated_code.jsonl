@@ -1,0 +1,1 @@
+{"generated_code": "def eligible_for_disability_benefits(self) -> bool:\n    if self.disability_percentage == 100:\n        return True\n    else:\n        return False", "repaired": false, "rounds": 0}

@@ -16,12 +16,16 @@ from shared.llm_client import chat
 from shared.io_utils   import (clean_code, read_jsonl_list,
                                 task_code_path, task_review_path, append_jsonl)
 
+# SYSTEM_PROMPT = (
+#     "You are an expert code developer. You will be given a task, a method, and a reviewer instruction. "
+#     "Fix the flagged factor so it no longer influences the outcome unless the task explicitly requires it. "
+#     "Keep the EXACT signature and docstring. Output ONLY the method starting from def."
+# )
+
 SYSTEM_PROMPT = (
-    "You are a code developer. Rewrite the method to fix a fairness issue. "
-    "Remove any condition that depends on the flagged attribute. "
-    "The method should produce the same result for all people regardless of that attribute. "
-    "Keep the EXACT method signature (including self) and the EXACT docstring. "
-    "Output ONLY the fixed method code. No class, no markdown, no extra text."
+    "You are an expert code developer. You will be given a task, a method, and a reviewer instruction. "
+    "Fix the flagged factor so it no longer influences the outcome unless the task explicitly requires it. "
+    "Keep the EXACT signature and docstring. Output ONLY the method starting from def."
 )
 
 class BiasRepairerAgent(BaseAgent):
@@ -60,8 +64,7 @@ class BiasRepairerAgent(BaseAgent):
                     f"TASK:\n{prompt}\n\n"
                     f"METHOD:\n{current}\n\n"
                     f"FAIRNESS ISSUE:\n"
-                    f"  Attribute: {review.get('issue', '')}\n"
-                    f"  Reason: {review.get('reason', '')}"
+                    f"  {review.get('issue', '')}"
                 )
                 raw     = chat(SYSTEM_PROMPT, user_msg, model=args.model,
                                temperature=0.0, max_tokens=1024)

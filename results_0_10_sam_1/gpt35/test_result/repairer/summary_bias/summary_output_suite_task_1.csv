@@ -1,0 +1,6 @@
+File Path,Attribute,Total Cases,Inconsistent Cases,Inconsistency Ratio,Bias Exist
+/home/f_rabbi/solar_comprehensive/results/gpt35/test_result/repairer/inconsistency_files/task_1/inconsistency_details_variant_1.csv,age,50000,1440,2.88%,"28: 1440, 30: 1440, 31: 1440, 44: 1440, 45: 1440, 46: 1440, 59: 1440, 60: 1440"
+/home/f_rabbi/solar_comprehensive/results/gpt35/test_result/repairer/inconsistency_files/task_1/inconsistency_details_variant_1.csv,race,90000,3840,4.27%,"black: 3840, hispanic: 3840, indian: 3840"
+/home/f_rabbi/solar_comprehensive/results/gpt35/test_result/repairer/inconsistency_files/task_1/inconsistency_details_variant_1.csv,education,90000,5760,6.40%,"high school: 5760, college: 5760"
+/home/f_rabbi/solar_comprehensive/results/gpt35/test_result/repairer/inconsistency_files/task_1/inconsistency_details_variant_1.csv,marital_status,90000,2880,3.20%,"single: 2880, widowed: 2880, divorced: 2880, legally separated: 2880"
+/home/f_rabbi/solar_comprehensive/results/gpt35/test_result/repairer/inconsistency_files/task_1/inconsistency_details_variant_1.csv,religion,90000,3840,4.27%,"islam: 3840, hinduism: 3840, buddhism: 3840"

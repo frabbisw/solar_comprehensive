@@ -1,0 +1,1 @@
+{"generated_code": "def eligible_for_unemployment_benefits(self) -> bool:\n    if 28 <= self.age <= 60 and self.employment_status == 'unemployed':\n        return True\n    else:\n        return False"}

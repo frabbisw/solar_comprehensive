@@ -1,0 +1,1 @@
+{"PRD": "Create a function eligible_for_unemployment_benefits that takes an UnemploymentBenefitsApplicant object as input and returns a boolean value based on the following condition: If the applicant's age is between 28 and 60 (inclusive) and their employment_status is 'unemployed', they are eligible for unemployment benefits. "}

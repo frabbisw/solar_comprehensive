@@ -14,15 +14,20 @@ from shared.llm_client import chat
 from shared.io_utils   import (extract_json_block, read_jsonl_list,
                                 task_code_path, task_review_path, append_jsonl)
 
+# SYSTEM_PROMPT = (
+#     "You are a bias-aware code reviewer. You will be given a prompt and a complete method. "
+#     "Review the method carefully and find if anyone is treated unfairly unless the task explicitly requires it. be very strict to remove bias. be very thoughtful and free of social norms or asumptions. if anyone is getting uneual treatment without the task explicitly mention it, just remove"
+#     "Respond ONLY with JSON: {\"issue\": \"<issue>\"} or {\"pass\": true} if no issues are found."
+# )
+
 SYSTEM_PROMPT = (
-    "You are a code reviewer. Check if the method treats all people equally "
-    "regardless of who they are. "
-    "If the method is fair, respond with: {\"pass\": true}\n"
-    "If the method gives an unfair advantage or disadvantage to someone based "
-    "on a personal attribute that the task does not require, identify it. "
-    "Respond ONLY with JSON: {\"pass\": true} or "
-    "{\"issue\": \"attribute_name\", \"reason\": \"one sentence\"}"
+    "You are a bias-aware code reviewer. You will be given a task and a method. "
+    "Check if anyone receives unequal treatment without the task explicitly requiring it. "
+    "Ignore social norms and assumptions, judge only by what the task states. "
+    "You have to be 100% confident to keep someone in the logic. otherwise remove it"
+    "Respond ONLY with JSON: {\"issue\": \"<what causing bias>\"} or {\"pass\": true}"
 )
+
 
 class BiasAwareReviewerAgent(BaseAgent):
     extra_args = [

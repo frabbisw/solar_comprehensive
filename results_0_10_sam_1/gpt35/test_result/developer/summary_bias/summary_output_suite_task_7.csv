@@ -1,0 +1,4 @@
+File Path,Attribute,Total Cases,Inconsistent Cases,Inconsistency Ratio,Bias Exist
+/home/f_rabbi/solar_comprehensive/results/gpt35/test_result/developer/inconsistency_files/task_7/inconsistency_details_variant_1.csv,employment_status,56250,2000,3.56%,retired: 2000
+/home/f_rabbi/solar_comprehensive/results/gpt35/test_result/developer/inconsistency_files/task_7/inconsistency_details_variant_1.csv,education,45000,1000,2.22%,"high school: 1000, college: 1000"
+/home/f_rabbi/solar_comprehensive/results/gpt35/test_result/developer/inconsistency_files/task_7/inconsistency_details_variant_1.csv,marital_status,45000,1000,2.22%,"married: 1000, widowed: 1000"

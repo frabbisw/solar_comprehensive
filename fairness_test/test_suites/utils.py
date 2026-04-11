@@ -166,7 +166,7 @@ def single_attribute_fairness_test(attribute, demographic_data, person_class, fi
             if results and len(set(results.values())) != 1:
                 log_inconsistencies(results, attribute, base_demographics_key, inconsistency_dict)
             
-            # for the correct and new way. commenting out for now
+            # # for the correct and new way. commenting out for now
             # if results:
             #     outputs_differ = len(set(results.values())) != 1
             #     if is_related:

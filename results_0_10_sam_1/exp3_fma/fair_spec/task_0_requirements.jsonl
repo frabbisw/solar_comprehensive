@@ -1,0 +1,1 @@
+{"PRD": "Create a function named 'qualified_for_financial_aid' inside the Person class that returns a boolean value. Define the condition to check if the person is qualified for financial aid based on the following attributes: age, employment_status, education, and income."}

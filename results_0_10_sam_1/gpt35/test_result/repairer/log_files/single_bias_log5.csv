@@ -1,0 +1,8 @@
+Variant 1, Sensitive_Attribute 'gender':No inconsistencies found.
+Variant 1, Sensitive_Attribute 'race':No inconsistencies found.
+Variant 1, Sensitive_Attribute 'education':Inconsistencies found.
+Variant 1, Sensitive_Attribute 'marital_status':No inconsistencies found.
+Variant 1, Sensitive_Attribute 'religion':No inconsistencies found.
+Variant 1, Related_Attribute 'monthly_income':Inconsistencies found.
+Variant 1, Related_Attribute 'age':Inconsistencies found.
+Variant 1, Related_Attribute 'employment_status':Inconsistencies found.
