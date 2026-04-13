@@ -1,65 +1,60 @@
 """
 fma/bias_aware_requirements.py  —  Fairness Requirement Analyst
 
-IN:  task prompt (dataclass + docstring)
-OUT: task_<id>_requirements.jsonl
-     {"instruction": "one sentence for developer to implement fairly"}
+IN:  task prompt + existing functional PRD from agents/requirements.py
+OUT: task_<id>_requirements.jsonl  {"PRD": "updated PRD with fairness constraints"}
 
-This instruction is injected into developer.py as a system prompt hint.
-The design principle: fewer attributes → less chance of bias.
-The prompt steers toward minimalism without stating it explicitly.
+Reads the functional PRD and updates it to remove any demographic bias —
+ensuring the decision logic is based only on what the task explicitly requires.
+Can run multiple rounds (--fma_req_rounds) where each round feeds the
+previous round's PRD as input.
+
+Round 1: reads from func_spec/
+Round 2+: reads from previous fair_spec round output
 """
 import sys, os
+
+from typer import prompt
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import argparse
 from shared.base_agent import BaseAgent
 from shared.llm_client import chat
-from shared.io_utils   import extract_json_block, task_requirements_path, append_jsonl
-
-
-# SYSTEM_PROMPT = (
-#     "You are a strict bias checker. You will be given a task description. "
-#     "Write a one-sentence clear, bias related PRD instruction for the developer about the factors "
-#     "the task explicitly requires, and bans all others from influencing the outcome."
-#     "No assumptions, no social norms, no bias towards any group or individual. "
-#     "Respond ONLY with JSON: {\"PRD\": \"<instruction>\"}"
-# )
-
-# SYSTEM_PROMPT = (
-#     "You are a strict bias checker. You will be given a task description. "
-#     "Write a one-line PRD identifying the required factors explicitly mentioned in the task, and ignore all other factors from influencing the outcome. "
-#     # "no assumptions, no social norms, no bias towards any group or individual. "
-#     "A factor is required ONLY if removing it would make the decision impossible. "
-#     "Respond ONLY with JSON: {\"PRD\": \"<instruction>\"}"
-# )
-
-# SYSTEM_PROMPT = (
-#     "You are a strict bias checker. You will be given a task description. "
-#     "Write a one-sentence clear, bias related PRD instruction for the developer about the factors "
-#     "the task explicitly requires, and bans all others from influencing the outcome."
-#     "No assumptions, no social norms, no bias towards any group or individual. "
-#     "Respond ONLY with JSON: {\"PRD\": \"<instruction>\"}"
-# )
+from shared.io_utils   import extract_json_block, task_requirements_path, append_jsonl, read_jsonl_list
 
 SYSTEM_PROMPT = (
-    "You are a bias aware requirements generator. You will be given a task description. "
-    "Write a strict PRD instruction for the developer to implement fair, bias-free code. "
-    "Do not assume anything outside the task. "
-    "You must be 100% confident, strict, and minimal about a factor to be included and allow it to influence the outcome. "
-    "Respond ONLY with JSON: {\"PRD\": \"<instruction>\"}"
+    "You are a strict bias remover. You will be given a task and a PRD. "
+    "read the task and correct the PRD by deleting any biased content towards anything not asked by the task. be very strict about removing any contents from the PRD, you will get reward for removing biases."
+    "rewrite the bias free PRD an return."
+    "Respond ONLY with JSON: {\"PRD\": \"<rewritten instruction>\"}"
 )
 
 class BiasAwareRequirementsAgent(BaseAgent):
-    extra_args = [(["--output_dir"], {"required": True})]
+    extra_args = [
+        (["--output_dir"],  {"required": True}),
+        (["--prd_dir"],     {"required": True,
+                             "help": "Directory containing the input PRD (from requirements.py or previous round)"}),
+    ]
 
     def process_task(self, task_id: str, prompt: str, args: argparse.Namespace) -> None:
         out_path = task_requirements_path(args.output_dir, task_id)
+        prd_path = task_requirements_path(args.prd_dir, task_id)
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
         open(out_path, "w").close()
+
+        # Read existing PRD
+        prd = ""
+        if os.path.exists(prd_path):
+            lines = read_jsonl_list(prd_path)
+            if lines and not lines[0].get("_parse_error"):
+                prd = lines[0].get("PRD", "")
+
+        user_msg = f"TASK:\n{prompt}\n\nEXISTING PRD:\n{prd}" if prd else f"TASK:\n{prompt}"
+        # user_msg = f"TASK:\n{prompt}" if prd else f"TASK:\n{prompt}"
+
         for _ in range(args.num_samples):
-            raw  = chat(SYSTEM_PROMPT, prompt, model=args.model,
-                        temperature=0.0, max_tokens=128)
-            spec = extract_json_block(raw) or {"PRD": "", "_parse_error": True}
+            raw  = chat(SYSTEM_PROMPT, user_msg, model=args.model,
+                        temperature=args.temperature, max_tokens=128)
+            spec = extract_json_block(raw) or {"PRD": prd, "_parse_error": True}
             append_jsonl(out_path, spec)
 
 if __name__ == "__main__":

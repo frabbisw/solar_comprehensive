@@ -1,12 +1,10 @@
 """
-agents/requirements.py  —  Functional Requirement Analyst
+agents/requirements.py  —  Functional Requirement Engineer
 
 IN:  task prompt (dataclass + docstring)
-OUT: task_<id>_requirements.jsonl  {"PRD": "one sentence describing the decision logic"}
-
-Generates a functional PRD describing what the method should do and what
-factors drive the decision. This is then passed to fma/bias_aware_requirements.py
-which reviews and updates it for fairness.
+OUT: task_<id>_requirements.jsonl
+     {"pass": true}                       if requirements are clear
+     {"criterion": "one sentence"}        if something needed clarification
 """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -16,10 +14,10 @@ from shared.llm_client import chat
 from shared.io_utils   import extract_json_block, task_requirements_path, append_jsonl
 
 SYSTEM_PROMPT = (
-    "You are a requirements analyst. You will be given a task description. "
-    "Write a one-sentence PRD describing the decision logic. "
-    "Be precise and specific about the conditions. focus on the task and ignore anything not explicitly required. "
-    "Respond ONLY with JSON: {\"PRD\": \"<one sentence>\"}"
+    "You are a requirements analyst. Read the coding task carefully. "
+    "If the task description is clear and complete, respond with: {\"pass\": true}\n"
+    "If anything is ambiguous or missing, rewrite it as a clear one-sentence criterion. "
+    "Respond ONLY with JSON: {\"pass\": true} or {\"criterion\": \"one sentence\"}"
 )
 
 class RequirementsAgent(BaseAgent):
@@ -31,8 +29,8 @@ class RequirementsAgent(BaseAgent):
         open(out_path, "w").close()
         for _ in range(args.num_samples):
             raw  = chat(SYSTEM_PROMPT, prompt, model=args.model,
-                        temperature=args.temperature, max_tokens=128)
-            spec = extract_json_block(raw) or {"PRD": "", "_parse_error": True}
+                        temperature=0.0, max_tokens=128)
+            spec = extract_json_block(raw) or {"pass": True, "_parse_error": True}
             append_jsonl(out_path, spec)
 
 if __name__ == "__main__":

@@ -14,7 +14,8 @@
 #   --model      gpt                                 (default: gpt)
 #   --start      first task index inclusive          (default: 0)
 #   --end        last task index exclusive           (default: 343)
-#   --rounds     reviewer+repairer iterations [Exp 3] (default: 1, max: 3)
+#   --rounds         reviewer+repairer iterations [Exp 3] (default: 1, max: 3)
+#   --fma_req_rounds fma requirements refinement rounds [Exp 3] (default: 1)
 #   --solar_dir  Solar fairness_test/ directory     (required Exp 2+3)
 #   --model_dir  Solar results directory            (required Exp 2+3)
 #
@@ -38,6 +39,7 @@ MODEL="gpt"
 START=0
 END=343
 ROUNDS=1
+FMA_REQ_ROUNDS=1
 SOLAR_DIR=""
 MODEL_DIR=""
 
@@ -52,7 +54,8 @@ while [[ $# -gt 0 ]]; do
     --model)     MODEL="$2";     shift 2 ;;
     --start)     START="$2";     shift 2 ;;
     --end)       END="$2";       shift 2 ;;
-    --rounds)    ROUNDS="$2";    shift 2 ;;
+    --rounds)         ROUNDS="$2";         shift 2 ;;
+    --fma_req_rounds) FMA_REQ_ROUNDS="$2";    shift 2 ;;
     --solar_dir) SOLAR_DIR="$2"; shift 2 ;;
     --model_dir) MODEL_DIR="$2"; shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
@@ -104,7 +107,8 @@ run_solar() {
   local log_dir_v2="${log_dir}_v2"
   local related_v2_dir="$MODEL_DIR/test_result/$agent/related_info_v2_files"
   if [[ -d "$log_dir_v2" ]]; then
-    python "$SOLAR_DIR/parse_bias_info.py" "$log_dir_v2" "$related_v2_dir" "$SAMPLES"
+    local bias_v2_tmp="$MODEL_DIR/test_result/$agent/bias_info_v2_tmp"
+    python "$SOLAR_DIR/parse_bias_info.py" "$log_dir_v2" "$bias_v2_tmp" "$SAMPLES"       --invert_related --related_out_dir "$related_v2_dir"
   fi
 
   cd "$SOLAR_DIR"
@@ -228,25 +232,47 @@ if [[ "$EXP" == "3" ]]; then
   [[ -z "$STYLE" ]] && STYLE="agent"
   require_solar
   BASE="$REPO/results/exp3_fma"
-  FAIR_SPEC_OUT="$BASE/fair_spec"
   DEV_OUT="$BASE/developer"
   FMA_REV_OUT="$BASE/fma_reviewer"
   FMA_REP_OUT="$BASE/repairer"
-  mkdir -p "$FAIR_SPEC_OUT" "$DEV_OUT" "$FMA_REV_OUT" "$FMA_REP_OUT"
+  mkdir -p "$DEV_OUT" "$FMA_REV_OUT" "$FMA_REP_OUT"
 
   echo "$SEP"
   echo "  EXP 3 – FMA pipeline"
   echo "  model=$MODEL  tasks=$START-$END  samples=$SAMPLES  rounds=$ROUNDS"
   echo "$SEP"
 
-  log_stage "A  Fairness Requirement Analyst" "$PROMPTS" "$FAIR_SPEC_OUT"
-  python "$FMA/bias_aware_requirements.py" \
+  # Stage A: Functional Requirement Analyst
+  FUNC_SPEC_OUT="$BASE/func_spec"
+  mkdir -p "$FUNC_SPEC_OUT"
+  log_stage "A  Functional Requirement Analyst" "$PROMPTS" "$FUNC_SPEC_OUT"
+  python "$AGENTS/requirements.py" \
     --prompts_file "$PROMPTS" \
-    --output_dir   "$FAIR_SPEC_OUT" \
+    --output_dir   "$FUNC_SPEC_OUT" \
     --model        "$MODEL" \
     --num_samples  1 \
     --start        "$START" \
     --end          "$END"
+
+  # Stage B: Fairness Requirement Analyst (iterative — --fma_req_rounds)
+  # Round 1 reads from func_spec/, each subsequent round reads previous output
+  PREV_PRD_DIR="$FUNC_SPEC_OUT"
+  for fma_req_round in $(seq 1 "$FMA_REQ_ROUNDS"); do
+    FAIR_SPEC_ROUND_OUT="$BASE/fair_spec_round${fma_req_round}"
+    mkdir -p "$FAIR_SPEC_ROUND_OUT"
+    log_stage "B  Fairness Requirement Analyst (round $fma_req_round/$FMA_REQ_ROUNDS)" \
+              "$PREV_PRD_DIR" "$FAIR_SPEC_ROUND_OUT"
+    python "$FMA/bias_aware_requirements.py" \
+      --prompts_file "$PROMPTS" \
+      --output_dir   "$FAIR_SPEC_ROUND_OUT" \
+      --prd_dir      "$PREV_PRD_DIR" \
+      --model        "$MODEL" \
+      --num_samples  1 \
+      --start        "$START" \
+      --end          "$END"
+    PREV_PRD_DIR="$FAIR_SPEC_ROUND_OUT"
+  done
+  FAIR_SPEC_OUT="$PREV_PRD_DIR"   # final PRD dir used by developer
 
   log_stage "1  Developer" "$PROMPTS + $FAIR_SPEC_OUT" "$DEV_OUT"
   python "$AGENTS/developer.py" "${COMMON[@]}" \
@@ -257,33 +283,36 @@ if [[ "$EXP" == "3" ]]; then
   run_solar "developer" "$DEV_OUT"
 
   # ── Iterative review + repair loop (--rounds controls iterations) ──────────
-  # Round 1 reads from developer output.
-  # Each subsequent round reads from the previous round's repairer output.
-  # Results are named: repairer_round1/, repairer_round2/, ..., repairer/ (final)
+  # Each round has its own reviewer and repairer output folder.
+  # Round N reads code from round N-1 repairer (or developer for round 1).
+  # Each round's repairer output is evaluated by Solar independently
+  # so CBS can be reported per round in the paper.
+  #
+  # Output folders:
+  #   fma_reviewer_round1/   fma_repairer_round1/   (solar: repairer_round1)
+  #   fma_reviewer_round2/   fma_repairer_round2/   (solar: repairer_round2)
+  #   ...
   CURRENT_CODE_DIR="$DEV_OUT"
   for round in $(seq 1 "$ROUNDS"); do
-    if [[ "$round" -lt "$ROUNDS" ]]; then
-      ROUND_REP_OUT="$BASE/repairer_round${round}"
-    else
-      ROUND_REP_OUT="$FMA_REP_OUT"   # final round goes to canonical repairer/
-    fi
-    mkdir -p "$ROUND_REP_OUT"
+    ROUND_REV_OUT="$BASE/fma_reviewer_round${round}"
+    ROUND_REP_OUT="$BASE/fma_repairer_round${round}"
+    mkdir -p "$ROUND_REV_OUT" "$ROUND_REP_OUT"
 
-    log_stage "2  FMA Reviewer (round $round/$ROUNDS)" "$CURRENT_CODE_DIR" "$FMA_REV_OUT"
+    log_stage "2  FMA Reviewer (round $round/$ROUNDS)" "$CURRENT_CODE_DIR" "$ROUND_REV_OUT"
     python "$FMA/bias_aware_reviewer.py" \
       --prompts_file "$PROMPTS" \
       --code_dir     "$CURRENT_CODE_DIR" \
-      --output_dir   "$FMA_REV_OUT" \
+      --output_dir   "$ROUND_REV_OUT" \
       --model        "$MODEL" \
       --num_samples  "$SAMPLES" \
       --start        "$START" \
       --end          "$END"
 
-    log_stage "3  FMA Repairer (round $round/$ROUNDS)" "$CURRENT_CODE_DIR + $FMA_REV_OUT" "$ROUND_REP_OUT"
+    log_stage "3  FMA Repairer (round $round/$ROUNDS)" "$CURRENT_CODE_DIR + $ROUND_REV_OUT" "$ROUND_REP_OUT"
     python "$FMA/bias_repairer.py" \
       --prompts_file "$PROMPTS" \
       --code_dir     "$CURRENT_CODE_DIR" \
-      --review_dir   "$FMA_REV_OUT" \
+      --review_dir   "$ROUND_REV_OUT" \
       --output_dir   "$ROUND_REP_OUT" \
       --model        "$MODEL" \
       --num_samples  "$SAMPLES" \
@@ -291,14 +320,17 @@ if [[ "$EXP" == "3" ]]; then
       --start        "$START" \
       --end          "$END"
 
+    # Solar evaluation per round — gives CBS for each iteration
+    run_solar "repairer_round${round}" "$ROUND_REP_OUT"
+
     CURRENT_CODE_DIR="$ROUND_REP_OUT"
   done
 
-  run_solar "repairer" "$FMA_REP_OUT"
-
   echo ""
   echo "$SEP"
-  echo "  CBS_before:    $MODEL_DIR/test_result/developer/"
-  echo "  CBS_after_fma: $MODEL_DIR/test_result/repairer/"
+  echo "  CBS_before:  $MODEL_DIR/test_result/developer/"
+  for round in $(seq 1 "$ROUNDS"); do
+    echo "  CBS_round${round}: $MODEL_DIR/test_result/repairer_round${round}/"
+  done
   echo "$SEP"
 fi
