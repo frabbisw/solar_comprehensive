@@ -14,8 +14,7 @@
 #   --model      gpt                                 (default: gpt)
 #   --start      first task index inclusive          (default: 0)
 #   --end        last task index exclusive           (default: 343)
-#   --rounds         reviewer+repairer iterations [Exp 3] (default: 1, max: 3)
-#   --fma_req_rounds fma requirements refinement rounds [Exp 3] (default: 1)
+#   --rounds     reviewer+repairer iterations [Exp 3] (default: 1, max: 3)
 #   --solar_dir  Solar fairness_test/ directory     (required Exp 2+3)
 #   --model_dir  Solar results directory            (required Exp 2+3)
 #
@@ -39,7 +38,6 @@ MODEL="gpt"
 START=0
 END=343
 ROUNDS=1
-FMA_REQ_ROUNDS=1
 SOLAR_DIR=""
 MODEL_DIR=""
 
@@ -54,8 +52,7 @@ while [[ $# -gt 0 ]]; do
     --model)     MODEL="$2";     shift 2 ;;
     --start)     START="$2";     shift 2 ;;
     --end)       END="$2";       shift 2 ;;
-    --rounds)         ROUNDS="$2";         shift 2 ;;
-    --fma_req_rounds) FMA_REQ_ROUNDS="$2";    shift 2 ;;
+    --rounds)    ROUNDS="$2";    shift 2 ;;
     --solar_dir) SOLAR_DIR="$2"; shift 2 ;;
     --model_dir) MODEL_DIR="$2"; shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
@@ -99,7 +96,21 @@ run_solar() {
   sed -i "s|##PATH##TO##RESPONSE##|$resp_dir|g"               config.py
   sed -i "s|##PATH##TO##LOG##FILES##|$log_dir|g"               config.py
   sed -i "s|##PATH##TO##INCONSISTENCY##FILES##|$report_dir|g"  config.py
-  pytest
+  # pytest
+
+  # Only run test suites in the requested range — skip already-done tasks
+  TEST_FILES=""
+  for i in $(seq "$START" $((END - 1))); do
+    f="test_suite_${i}.py"
+    [[ -f "$f" ]] && TEST_FILES="$TEST_FILES $f"
+  done
+  if [[ -z "$TEST_FILES" ]]; then
+    echo "  No test suite files found for range $START-$END"
+  else
+    pytest $TEST_FILES
+  fi
+
+
   cd "$REPO"
   python "$SOLAR_DIR/parse_bias_info.py" "$log_dir" "$bias_dir" "$SAMPLES"
 
@@ -232,47 +243,25 @@ if [[ "$EXP" == "3" ]]; then
   [[ -z "$STYLE" ]] && STYLE="agent"
   require_solar
   BASE="$REPO/results/exp3_fma"
+  FAIR_SPEC_OUT="$BASE/fair_spec"
   DEV_OUT="$BASE/developer"
   FMA_REV_OUT="$BASE/fma_reviewer"
   FMA_REP_OUT="$BASE/repairer"
-  mkdir -p "$DEV_OUT" "$FMA_REV_OUT" "$FMA_REP_OUT"
+  mkdir -p "$FAIR_SPEC_OUT" "$DEV_OUT" "$FMA_REV_OUT" "$FMA_REP_OUT"
 
   echo "$SEP"
   echo "  EXP 3 – FMA pipeline"
   echo "  model=$MODEL  tasks=$START-$END  samples=$SAMPLES  rounds=$ROUNDS"
   echo "$SEP"
 
-  # Stage A: Functional Requirement Analyst
-  FUNC_SPEC_OUT="$BASE/func_spec"
-  mkdir -p "$FUNC_SPEC_OUT"
-  log_stage "A  Functional Requirement Analyst" "$PROMPTS" "$FUNC_SPEC_OUT"
-  python "$AGENTS/requirements.py" \
+  log_stage "A  Fairness Requirement Analyst" "$PROMPTS" "$FAIR_SPEC_OUT"
+  python "$FMA/bias_aware_requirements.py" \
     --prompts_file "$PROMPTS" \
-    --output_dir   "$FUNC_SPEC_OUT" \
+    --output_dir   "$FAIR_SPEC_OUT" \
     --model        "$MODEL" \
     --num_samples  1 \
     --start        "$START" \
     --end          "$END"
-
-  # Stage B: Fairness Requirement Analyst (iterative — --fma_req_rounds)
-  # Round 1 reads from func_spec/, each subsequent round reads previous output
-  PREV_PRD_DIR="$FUNC_SPEC_OUT"
-  for fma_req_round in $(seq 1 "$FMA_REQ_ROUNDS"); do
-    FAIR_SPEC_ROUND_OUT="$BASE/fair_spec_round${fma_req_round}"
-    mkdir -p "$FAIR_SPEC_ROUND_OUT"
-    log_stage "B  Fairness Requirement Analyst (round $fma_req_round/$FMA_REQ_ROUNDS)" \
-              "$PREV_PRD_DIR" "$FAIR_SPEC_ROUND_OUT"
-    python "$FMA/bias_aware_requirements.py" \
-      --prompts_file "$PROMPTS" \
-      --output_dir   "$FAIR_SPEC_ROUND_OUT" \
-      --prd_dir      "$PREV_PRD_DIR" \
-      --model        "$MODEL" \
-      --num_samples  1 \
-      --start        "$START" \
-      --end          "$END"
-    PREV_PRD_DIR="$FAIR_SPEC_ROUND_OUT"
-  done
-  FAIR_SPEC_OUT="$PREV_PRD_DIR"   # final PRD dir used by developer
 
   log_stage "1  Developer" "$PROMPTS + $FAIR_SPEC_OUT" "$DEV_OUT"
   python "$AGENTS/developer.py" "${COMMON[@]}" \

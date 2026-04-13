@@ -61,7 +61,7 @@ from shared.io_utils   import (extract_json_block, read_jsonl_list,
 SYSTEM_PROMPT = (
     "You are a fair code reviewer. You will be given a task description and a generated method from the task. "
     "Write a 1 line feedback about which logics should be removed from the generated method to make it fair. any logic that is not explicitly required by the task should be removed. "
-    "think solely on the task, do not get biased towards any group or individual, no new logic is needed, just remove the existing ones that cause bias. "
+    "think solely on the task, do not get biased towards any group or individual, do not add any new logic, just remove the existing ones that cause bias. "
     "biased logics are those that cause unequal treatment to different groups or individuals without being explicitly required by the task. "
     "Respond ONLY with JSON: {\"issues\": \"instructions\"} just return {\"pass\": true} if it is fair."
 )
@@ -79,7 +79,11 @@ class BiasAwareReviewerAgent(BaseAgent):
             print(f"  SKIP task {task_id}: missing code"); return
 
         code_lines = read_jsonl_list(code_path)
+        
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        if os.path.exists(out_path):
+            print("Output file already exists, skipping:", out_path)
+            return
         open(out_path, "w").close()
 
         for i in range(min(args.num_samples, len(code_lines))):

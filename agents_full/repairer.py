@@ -35,7 +35,11 @@ class RepairerAgent(BaseAgent):
 
         code_lines   = read_jsonl_list(code_path)
         review_lines = read_jsonl_list(review_path)
+
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        if os.path.exists(out_path):
+            print("Output file already exists, skipping:", out_path)
+            return
         open(out_path, "w").close()
 
         n = min(args.num_samples, len(code_lines), len(review_lines))

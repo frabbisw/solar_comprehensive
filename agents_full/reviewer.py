@@ -31,13 +31,18 @@ class ReviewerAgent(BaseAgent):
     def process_task(self, task_id: str, prompt: str, args: argparse.Namespace) -> None:
         code_path = task_code_path(args.code_dir, task_id)
         out_path  = task_review_path(args.output_dir, task_id)
+        
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        if os.path.exists(out_path):
+            print("Output file already exists, skipping:", out_path)
+            return
+        open(out_path, "w").close()
+
         if not os.path.exists(code_path):
             print(f"  SKIP task {task_id}: missing code"); return
 
         code_lines = read_jsonl_list(code_path)
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        open(out_path, "w").close()
-
+        
         for i in range(min(args.num_samples, len(code_lines))):
             code = code_lines[i].get("generated_code", "")
             user_msg = f"TASK:\n{prompt}\n\nMETHOD:\n{code}"

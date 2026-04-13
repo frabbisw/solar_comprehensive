@@ -47,8 +47,12 @@ class TestAgent(BaseAgent):
             print(f"  SKIP task {task_id}: missing code file"); return
 
         code_lines = read_jsonl_list(code_path)
-        open(out_path, "w").close()
+        
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        if os.path.exists(out_path):
+            print("Output file already exists, skipping:", out_path)
+            return
+        open(out_path, "w").close()
 
         for i in range(min(args.num_samples, len(code_lines))):
             code     = code_lines[i].get("generated_code", "")
