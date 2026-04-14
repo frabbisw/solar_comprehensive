@@ -24,24 +24,33 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+echo "Experiment: $exp"
+echo "Start: $start"
+echo "End: $end"
+echo "Samples: $samples"
+echo "Rounds: $rounds"
+echo "Solar Directory: $solar_dir"
+echo "Model Directory: $model_dir"
+echo "Temperature: $temp"   
+
 # Optional: update job name dynamically
-scontrol update JobId=$SLURM_JOB_ID Name=solar_${exp}_${start}_${end}_${samples}
+# scontrol update JobId=$SLURM_JOB_ID Name=solar_${exp}_${start}_${end}_${samples}
 
-source /etc/profile.d/modules.sh
-module load python/3.11.6
-module load anaconda/3.2024.10.1
+# source /etc/profile.d/modules.sh
+# module load python/3.11.6
+# module load anaconda/3.2024.10.1
 
-eval "$(conda shell.bash hook)"
-conda activate solar
+# eval "$(conda shell.bash hook)"
+# conda activate solar
 
-bash commands/run_pipeline.sh \
-  --exp "$exp" \
-  --start "$start" \
-  --end "$end" \
-  --samples "$samples" \
-  --rounds "$rounds" \
-  --solar_dir "$solar_dir" \
-  --model_dir "$model_dir" \
-  --temp "$temp"
+# bash commands/run_pipeline.sh \
+#   --exp "$exp" \
+#   --start "$start" \
+#   --end "$end" \
+#   --samples "$samples" \
+#   --rounds "$rounds" \
+#   --solar_dir "$solar_dir" \
+#   --model_dir "$model_dir" \
+#   --temp "$temp"
 
-# sbatch slurm.sh --exp 3     --start 0 --end 100 --samples 1 --rounds 3     --solar_dir ~/solar_comprehensive/fairness_test     --model_dir ~/solar_comprehensive/results/gpt35 --temp 0.5
+# # sbatch slurm.sh --exp 3     --start 0 --end 100 --samples 1 --rounds 3     --solar_dir ~/solar_comprehensive/fairness_test     --model_dir ~/solar_comprehensive/results/gpt35 --temp 0.5
