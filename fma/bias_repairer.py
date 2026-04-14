@@ -24,7 +24,7 @@ from shared.io_utils   import (clean_code, read_jsonl_list,
 
 SYSTEM_PROMPT = (
     "You are an expert fair code repairer. You will be given a task description, a generated method from the task, and an instruction from the reviewer about problematic attributes. you have to remove them from influencing the method's outcome. "
-    "Ignore the instruction if it causes errors or asks to add more attributes in the method. "
+    "Ignore the instruction if it causes errors or new biases. "
     "Keep the EXACT signature and docstring. Output ONLY the method starting from def."
 )
 

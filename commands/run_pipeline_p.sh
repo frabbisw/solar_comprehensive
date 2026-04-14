@@ -96,7 +96,8 @@ run_solar() {
   sed -i "s|##PATH##TO##RESPONSE##|$resp_dir|g"               config.py
   sed -i "s|##PATH##TO##LOG##FILES##|$log_dir|g"               config.py
   sed -i "s|##PATH##TO##INCONSISTENCY##FILES##|$report_dir|g"  config.py
-  
+  # pytest
+
   # Only run test suites in the requested range — skip already-done tasks
   TEST_FILES=""
   for i in $(seq "$START" $((END - 1))); do
@@ -108,6 +109,7 @@ run_solar() {
   else
     pytest $TEST_FILES
   fi
+
 
   cd "$REPO"
   python "$SOLAR_DIR/parse_bias_info.py" "$log_dir" "$bias_dir" "$SAMPLES"
@@ -127,8 +129,6 @@ run_solar() {
   python count_related.py      "$MODEL_DIR" "$START" "$END" "$agent"
   cd "$REPO"
   echo "  Done: $MODEL_DIR/test_result/$agent/"
-  echo "Deleting Inconsistency log files to save space..."
-  rm -rf "$report_dir"/*
 }
 
 bias_dir()    { echo "$MODEL_DIR/test_result/${1}/bias_info_files"; }
@@ -190,7 +190,7 @@ if [[ "$EXP" == "2" ]]; then
     --code_dir     "$DEV_OUT" \
     --output_dir   "$REV_OUT" \
     --model        "$MODEL" \
-    --temperature  "$TEMP" \
+    --temperature  0.0 \
     --num_samples  "$SAMPLES" \
     --start        "$START" \
     --end          "$END"
@@ -202,7 +202,7 @@ if [[ "$EXP" == "2" ]]; then
     --review_dir   "$REV_OUT" \
     --output_dir   "$REP_OUT" \
     --model        "$MODEL" \
-    --temperature  "$TEMP" \
+    --temperature  0.0 \
     --num_samples  "$SAMPLES" \
     --start        "$START" \
     --end          "$END"
@@ -222,7 +222,7 @@ if [[ "$EXP" == "2" ]]; then
     --review_dir   "$TMP_V1" \
     --output_dir   "$REP_V1_OUT" \
     --model        "$MODEL" \
-    --temperature  "$TEMP" \
+    --temperature  0.0 \
     --num_samples  "$SAMPLES" \
     --start        "$START" \
     --end          "$END"
@@ -259,7 +259,6 @@ if [[ "$EXP" == "3" ]]; then
     --prompts_file "$PROMPTS" \
     --output_dir   "$FAIR_SPEC_OUT" \
     --model        "$MODEL" \
-    --temperature  "$TEMP" \
     --num_samples  1 \
     --start        "$START" \
     --end          "$END"
@@ -294,7 +293,6 @@ if [[ "$EXP" == "3" ]]; then
       --code_dir     "$CURRENT_CODE_DIR" \
       --output_dir   "$ROUND_REV_OUT" \
       --model        "$MODEL" \
-      --temperature  "$TEMP" \
       --num_samples  "$SAMPLES" \
       --start        "$START" \
       --end          "$END"
@@ -306,7 +304,6 @@ if [[ "$EXP" == "3" ]]; then
       --review_dir   "$ROUND_REV_OUT" \
       --output_dir   "$ROUND_REP_OUT" \
       --model        "$MODEL" \
-      --temperature  "$TEMP" \
       --num_samples  "$SAMPLES" \
       --num_rounds   1 \
       --start        "$START" \

@@ -36,6 +36,22 @@ def parse_functions(file_content):
     return function_definitions
 
 
+# def clean_code_from_jsonl(file_path):
+#     cleaned_codes = []
+#     if not os.path.exists(file_path):
+#         print(f"File not found: {file_path}")
+#         return cleaned_codes
+#     with open(file_path, 'r') as file:
+#         for line in file:
+#             data = json.loads(line)
+#             code = data.get('generated_code', '')
+#             if code.startswith('```python') and re.search(r'``` *$', code):
+#                 clean_code = code.replace('```python', '').replace('```', '').strip()
+#             else:
+#                 clean_code = code
+#             cleaned_codes.append(clean_code)
+#     return cleaned_codes
+
 def clean_code_from_jsonl(file_path):
     cleaned_codes = []
     if not os.path.exists(file_path):
@@ -46,10 +62,17 @@ def clean_code_from_jsonl(file_path):
             data = json.loads(line)
             code = data.get('generated_code', '')
             if code.startswith('```python') and re.search(r'``` *$', code):
-                clean_code = code.replace('```python', '').replace('```', '').strip()
-            else:
-                clean_code = code
-            cleaned_codes.append(clean_code)
+                code = code.replace('```python', '').replace('```', '').strip()
+            # Skip empty or stub methods — they will fail all tests
+            if not code.strip() or code.strip() == 'pass':
+                continue
+            body = '\n'.join(
+                l for l in code.splitlines()
+                if not l.strip().startswith('#') and l.strip() not in ('', 'pass')
+            )
+            if not body.strip():
+                continue
+            cleaned_codes.append(code)
     return cleaned_codes
 
 
@@ -62,14 +85,24 @@ def setup_test_environment(file_path, person_class, function_namespace):
         load_function_into_person(person_class, func_def, function_namespace, attr_name_on_person)
 
 
+# def load_function_into_person(Person, func_definition, func_name_in_namespace, attr_name_on_person):
+#     namespace = {}
+#     try:
+#         exec(func_definition, globals(), namespace)
+#         setattr(Person, attr_name_on_person, namespace[func_name_in_namespace])
+#     except Exception as e:
+#         print(f"Error loading function '{func_name_in_namespace}' into Person: {e}")
+
 def load_function_into_person(Person, func_definition, func_name_in_namespace, attr_name_on_person):
     namespace = {}
     try:
         exec(func_definition, globals(), namespace)
+        if func_name_in_namespace not in namespace:
+            print(f"Function '{func_name_in_namespace}' not found after exec — skipping")
+            return
         setattr(Person, attr_name_on_person, namespace[func_name_in_namespace])
     except Exception as e:
-        print(f"Error loading function '{func_name_in_namespace}' into Person: {e}")
-
+        print(f"Error loading function '{func_name_in_namespace}': {e}")
 
 def generate_test_cases_single_attr(DEMOGRAPHIC_DATA, attribute):
     keys, values = zip(*[(k, v) for k, v in DEMOGRAPHIC_DATA.items() if k != attribute])

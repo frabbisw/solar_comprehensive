@@ -62,6 +62,12 @@ class DeveloperAgent(BaseAgent):
         system   = PROMPT_STYLES[args.model][args.prompt_style]
         out_path = task_code_path(args.output_dir, task_id)
 
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        if os.path.exists(out_path):
+            print("Output file already exists, skipping:", out_path)
+            return
+        open(out_path, "w").close()
+
         # Build user message: PRD (if available) + task clearly labeled
         prd = ""
         if args.spec_dir:
@@ -75,9 +81,6 @@ class DeveloperAgent(BaseAgent):
             user_msg = f"PRD: {prd}\n\nTASK DESCRIPTION:\n{prompt}"
         else:
             user_msg = f"TASK:\n{prompt}"
-
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        open(out_path, "w").close()
 
         for _ in range(args.num_samples):
             raw  = chat(system, user_msg, model=args.model, temperature=args.temperature)
