@@ -32,7 +32,7 @@ module load python/3.11.6
 module load anaconda/3.2024.10.1
 
 eval "$(conda shell.bash hook)"
-conda activate fagent
+conda activate solar
 
 bash commands/run_pipeline.sh \
   --exp "$exp" \
