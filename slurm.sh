@@ -50,4 +50,32 @@ bash commands/run_pipeline.sh \
   --model_dir "$model_dir" \
   --temp "$temp"
 
+python score/calculate_scores.py \
+  --model_dir "$model_dir" \
+  --agent developer \
+  --start "$start" \
+  --end "$end" \
+  --samples "$samples"
+
+python score/calculate_scores.py \
+  --model_dir "$model_dir" \
+  --agent repairer_round1 \
+  --start "$start" \
+  --end "$end" \
+  --samples "$samples"
+
+python score/calculate_scores.py \
+  --model_dir "$model_dir" \
+  --agent repairer_round2 \
+  --start "$start" \
+  --end "$end" \
+  --samples "$samples"
+
+python score/calculate_scores.py \
+  --model_dir "$model_dir" \
+  --agent repairer_round3 \
+  --start "$start" \
+  --end "$end" \
+  --samples "$samples"
+
 # sbatch slurm.sh --exp 3     --start 0 --end 100 --samples 1 --rounds 3     --solar_dir ~/solar_comprehensive/fairness_test     --model_dir ~/solar_comprehensive/results/gpt35 --temp 0.3
