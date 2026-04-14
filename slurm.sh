@@ -78,4 +78,11 @@ python score/calculate_scores.py \
   --end "$end" \
   --samples "$samples"
 
-# sbatch slurm.sh --exp 3     --start 0 --end 100 --samples 1 --rounds 3     --solar_dir ~/solar_comprehensive/fairness_test     --model_dir ~/solar_comprehensive/results/gpt35 --temp 0.3
+
+#python score/calculate_scores.py     --model_dir ~/solar/solar_comprehensive/results/gpt35     --agent repairer_round1 --start 0 --end 100 --samples 1
+#python score/calculate_scores.py     --model_dir ~/solar/solar_comprehensive/results/gpt35     --agent repairer_round1 --start 0 --end 100 --samples 1 --related_version v2
+#python score/calculate_scores.py     --model_dir ~/solar/solar_comprehensive/results/gpt35     --agent repairer_round2 --start 0 --end 100 --samples 1
+#python score/calculate_scores.py     --model_dir ~/solar/solar_comprehensive/results/gpt35     --agent repairer_round3 --start 0 --end 100 --samples 1
+
+
+# sbatch slurm.sh --exp 3     --start 0 --end 100 --samples 1 --rounds 3     --solar_dir ~/solar_comprehensive/fairness_test     --model_dir ~/solar_comprehensive/results/gp>
