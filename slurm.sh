@@ -1,0 +1,47 @@
+#!/bin/bash
+
+#SBATCH -J solar_job
+#SBATCH -n 4
+#SBATCH --mem=60G
+#SBATCH --time=72:00:00
+#SBATCH -o _%x%j.out
+#SBATCH --mail-type=BEGIN,END
+#SBATCH --mail-user=osdefr@gmail.com
+
+# Parse named arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --exp) exp="$2"; shift ;;
+        --start) start="$2"; shift ;;
+        --end) end="$2"; shift ;;
+        --samples) samples="$2"; shift ;;
+        --rounds) rounds="$2"; shift ;;
+        --solar_dir) solar_dir="$2"; shift ;;
+        --model_dir) model_dir="$2"; shift ;;
+        --temp) temp="$2"; shift ;;
+        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
+done
+
+# Optional: update job name dynamically
+scontrol update JobId=$SLURM_JOB_ID Name=solar_${exp}_${start}_${end}_${samples}
+
+source /etc/profile.d/modules.sh
+module load python/3.11.6
+module load anaconda/3.2024.10.1
+
+eval "$(conda shell.bash hook)"
+conda activate fagent
+
+bash commands/run_pipeline.sh \
+  --exp "$exp" \
+  --start "$start" \
+  --end "$end" \
+  --samples "$samples" \
+  --rounds "$rounds" \
+  --solar_dir "$solar_dir" \
+  --model_dir "$model_dir" \
+  --temp "$temp"
+
+# sbatch slurm.sh --exp 3     --start 0 --end 100 --samples 1 --rounds 3     --solar_dir ~/solar_comprehensive/fairness_test     --model_dir ~/solar_comprehensive/results/gpt35 --temp 0.5
