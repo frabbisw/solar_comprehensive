@@ -50,12 +50,13 @@ from shared.io_utils   import extract_json_block, task_requirements_path, append
 # )
 
 SYSTEM_PROMPT = (
-    "You are a fair requirements generator. You will be given a task description. "
-    "Write a clear PRD instruction on who should be qualified for the task. ignore any demographic attributes from consideration. only consider the task requirements explicitly. "
+    "You are a bias-free requirements generator. You will be given a task description. "
+    "Write a clear PRD instruction on who should be qualified for the task."
+    "Think solely on the task, do not get biased towards any group or individual. "
+    "An attribute must be excluded if it is clearly not specified by the task, or it is optional."    
+    "Avoid any presumption, only focus on the task. "
     "Respond ONLY with JSON: {\"PRD\": \"<instruction>\"}"
 )
-
-
 
 class BiasAwareRequirementsAgent(BaseAgent):
     extra_args = [(["--output_dir"], {"required": True})]
