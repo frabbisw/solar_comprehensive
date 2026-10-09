@@ -1,117 +1,50 @@
-# Social Bias EMSE Major-Revision Experiments
+# Social Bias in LLM-Generated Code: Benchmark and Mitigation
 
-This repository combines the original Solar/FMA codebase with the FlowGen hand-off used for RQ3 and adds clean revision runners for the EMSE major revision of **Social Bias in LLM-Generated Code: Benchmark and Mitigation**.
+**Reproduction repository for the Empirical Software Engineering (EMSE) major revision**
 
-The revision package keeps historical code traceable, but **all new results go under `results/` with new run IDs**. Old FlowGen virtual environments, generated workspaces, caches, and plaintext API credentials were removed.
+This repository contains the **SocialBias-Bench** coding tasks, the **Solar** fairness evaluation framework, and the generation/mitigation implementations used for four research questions (RQs). It combines the original implementation with the revised experiment runners and the FlowGen-based RQ3 workflows.
 
+> **Reproduction scope.** The commands below reproduce the **revised GPT-6 Luna experimental arm**, not every historical model from the original paper. Generation requires access to the configured model through the API. The repository excludes generated results, local configuration, API keys, and large logs. These should be archived separately.
 
-## Recommended staged execution
+## Research questions and coverage
 
-For the current revision campaign, use the **single-run-first** sequence in
-`docs/STAGED_RUN_PLAN.md`: full RQ1 across all five temperatures first, one
-complete RQ4 run, a small RQ3 pilot, one complete RQ3 run, and then all RQ2
-prompt styles. Additional independent RQ3/RQ4 runs come afterward.
+All revised studies use **343 tasks**, indexed **0–342**, from `dataset/prompts.jsonl`.
 
-## 1. Revision configuration
+| Research question | Study | Revised experimental conditions | Samples |
+| --- | --- | --- | --- |
+| **RQ1** | Effect of generation temperature on social bias | `0.2`, `0.4`, `0.6`, `0.8`, `1.0` | 5 generated methods per task per temperature |
+| **RQ2** | Effect of prompt-level mitigation | Default, CoT only, fairness only, positive role only, CoT + fairness, positive role + CoT + fairness | 5 generated methods per task per condition, at temperature `0.8` |
+| **RQ3** | Effect of multi-agent development workflow, fairness-aware roles, and role ablations | 12 distinct FlowGen configurations | 1 output per task per configuration per independent run |
+| **RQ4** | Fairness Monitor Agent (FMA) | Developer baseline and three functional/fairness review-and-repair rounds | 1 output per task per stage per independent run |
 
-To keep the new GPT arm comparable across the four RQs, use the same model/reasoning configuration everywhere:
+**Fairness evaluation:** Solar evaluates the generated Python methods using the benchmark's task-specific tests. We report Code Bias Score (CBS), Pass@attribute, and executable rate. Lower CBS indicates fewer detected benchmark-defined fairness violations. Pass@attribute measures task-related attribute usage; **neither Pass@attribute nor executable rate is a complete oracle for semantic functional correctness**. See [Functional correctness](#functional-correctness-and-evaluation-limits).
 
-```text
-OPENAI_MODEL=gpt-6-luna
-OPENAI_REASONING_EFFORT=none
-OPENAI_REASONING_MODE=standard
-REVISION_COMMON_TEMPERATURE=0.8
-FLOWGEN_TEMPERATURE=0.8
-```
-
-RQ1 intentionally varies temperature and includes **0.8 as the common anchor**. RQ2, RQ3, and RQ4 use 0.8. Because RQ1 is a temperature-sensitivity experiment, reasoning must remain `none` for the common RQ1-RQ4 configuration.
-
-The OpenAI key is read only from `.env`; do not put it in source code or commit it.
-
-**Security:** the original FlowGen hand-off contained plaintext API keys. They are not present here. Rotate/revoke those historical keys if that has not already been done.
-
-## 2. What is implemented
-
-### RQ1
-
-GPT-6 Luna replacement arm over all 343 tasks, five generations per task, temperatures:
-
-`0.2, 0.4, 0.6, 0.8, 1.0`
-
-### RQ2
-
-Six disentangled prompt conditions over all 343 tasks, five generations per task:
-
-- `rq2_default` (identical to the original RQ1 Default prompt)
-- `rq2_cot_only`
-- `rq2_fairness_only`
-- `rq2_positive_role_only`
-- `rq2_cot_fairness`
-- `rq2_positive_cot_fairness`
-
-This separates CoT, fairness wording, and positive-role prompting instead of confounding them.
-
-### RQ3
-
-The runner contains all **12 unique configurations** used by the three RQ3 analyses:
-
-Workflow structure:
-
-- `raw`
-- `waterfall`
-- `scrum`
-
-Fairness-aware role prompting:
-
-- `waterfall` (same clean baseline, reused analytically)
-- `waterfall_pm_fair`
-- `waterfall_architect_fair`
-- `waterfall_developer_fair`
-- `waterfall_qa_fair`
-- `waterfall_all_fair`
-
-Role ablation:
-
-- `waterfall` (same clean baseline, reused analytically)
-- `no_tester`
-- `no_architect_tester`
-- `no_requirement_tester`
-- `developer_only`
-
-The four ablation source variants were missing from the 2025 hand-off. They are now reconstructed directly from the manuscript's role-removal definition. The exact operationalization is documented in `docs/RQ3_ABLATION_IMPLEMENTATION.md`. They must be described as **reconstructed revision configurations**, not recovered historical code.
-
-### RQ4
-
-The revision runner implements the manuscript-level FMA pipeline:
+## Repository layout
 
 ```text
-Functional Requirements Analyst
-  -> Fairness Requirements Analyst
-  -> Developer
-  -> Functional Reviewer
-  -> Functional Repairer
-  -> Fairness Reviewer
-  -> Fairness Repairer
-  -> repeat up to 3 rounds
+agents/                       RQ1/RQ2 single-model code generation
+agents_full/                  RQ4 functional requirements, developer, reviewer, repairer
+fma/                          Historical FMA implementation (retained for traceability)
+fma_full/                     RQ4 fairness requirements, reviewer, repairer
+flowgen/                      RQ3 FlowGen and workflow configurations
+fairness_test/                Solar implementation and test suites
+score/                        CBS and Pass@attribute calculations
+commands/                     RQ1–RQ4 Python runners and Solar runner
+scripts/                      Smoke tests, full-run wrappers, completeness/usage checks
+analysis/                     Bootstrap analysis
+ dataset/prompts.jsonl        343 SocialBias-Bench tasks
+ docs/                        Experimental design and implementation notes
+results/                      Generated outputs (local; not tracked by Git)
 ```
 
-The Fairness Requirements Analyst prepares fairness-aware requirements. The Fairness Reviewer independently assesses the original task and generated method without treating upstream attribute classifications as authoritative. All three rounds perform fresh functional and fairness reviews, even when an earlier review passes. Repairers are invoked only when issues are reported. Solar is used only for external evaluation and is never visible to FMA agents.
+RQ3 includes reconstructed ablation configurations. They are **new revision implementations based on the described role removals**, not recovered historical source code; see `docs/RQ3_ABLATION_IMPLEMENTATION.md`.
 
-## 3. Setup
+## 1. Environment and setup
 
-Preferred environment: **Conda with Python 3.11**. The commands below assume
-the zip was downloaded to the Windows `Downloads` folder and is being run from
-WSL.
+Tested workflow: Linux/Ubuntu, **Python 3.11**, Conda environment named `socialbias`. From the checked-out repository root:
 
 ```bash
-WINUSER=$(cmd.exe /c echo %USERNAME% | tr -d '\r')
-ZIP="/mnt/c/Users/$WINUSER/Downloads/social_bias_revision_clean_v4.zip"
-
-cd ~
-unzip -o "$ZIP"
-cd ~/social_bias_revision
-
-conda create -n socialbias python=3.11 -y   # only the first time
+conda create -n socialbias python=3.11 -y   # first time only
 conda activate socialbias
 pip install -r requirements_revision.txt
 
@@ -119,254 +52,245 @@ cp -n .env.example .env
 nano .env
 ```
 
-Set your key locally in `.env`:
+Configure `.env` locally (never commit it):
 
-```text
-OPENAI_API_KEY=YOUR_KEY_HERE
+```dotenv
+OPENAI_API_KEY=YOUR_API_KEY
+OPENAI_MODEL=gpt-6-luna
+OPENAI_REASONING_EFFORT=none
+OPENAI_REASONING_MODE=standard
+REVISION_COMMON_TEMPERATURE=0.8
+FLOWGEN_TEMPERATURE=0.8
+FLOWGEN_BENCHMARK_MODE=1
+SOLAR_KEEP_RAW=0
 ```
 
-If `socialbias` already exists, do not recreate it; just activate it. Using
-`unzip -o` updates repository files but does not delete an existing `.env` or
-existing result directories. Do **not** paste your API key into chat.
+The same model/reasoning configuration is used across the revised studies. RQ1 varies temperature; temperature `0.8` provides the matched anchor for RQ2–RQ4. `FLOWGEN_BENCHMARK_MODE=1` applies the **same task-format compatibility instruction** to every RQ3 configuration and does not introduce an extra fairness rule.
 
-## 4. Preflight
-
-Always run this first:
+Verify the installation and benchmark inputs:
 
 ```bash
 python scripts/preflight.py
 ```
 
-It checks the 343-task dataset, the 12 RQ3 configurations, required files, the common temperature, and that no hidden 0.0-temperature override remains in the active RQ4 agents.
-
-## 5. One-task smoke tests
-
-### Recommended: exercise everything
-
-This runs one task through RQ1, all six RQ2 conditions, all twelve RQ3 configurations, and one RQ4 repair round, then prints token/cost usage:
+Before paying for a full run, execute the small smoke test:
 
 ```bash
 bash scripts/smoke_all.sh smoke1
+python scripts/check_campaign.py --tag smoke1 --smoke
 ```
 
-If it stops, fix that issue and run the same command again. Existing successful task files are skipped.
+Use different run IDs for a new experiment. A repeated ID can reuse existing per-task outputs instead of making independent new model calls.
 
-### Individual smoke commands
-
-RQ1 common anchor:
+## 2. Reproduce RQ1: temperature study
 
 ```bash
-python commands/run_rq1_revision.py \
-  --run-id smoke_rq1 --start 0 --end 1 --samples 1 --temps 0.8
+bash scripts/run_rq1_full.sh reproduce_rq1_rep1
+```
 
+This generates `343 × 5 temperatures × 5 samples = 8,575` methods, then evaluates each temperature with Solar. Generated code is under:
+
+```text
+results/rq1/reproduce_rq1_rep1/temp_0.8/developer/
+```
+
+The same structure exists for temperatures `0.2`, `0.4`, `0.6`, and `1.0`. Solar scores for temperature `0.8` are at:
+
+```text
+results/rq1/reproduce_rq1_rep1/solar_temp_0.8/test_result/developer/scores_v1.json
+```
+
+## 3. Reproduce RQ2: prompt interventions
+
+**Run RQ1 first.** The RQ2 Default condition uses the same prompt and reuses the five existing RQ1 methods per task at temperature `0.8` rather than generating identical completions again:
+
+```bash
+bash scripts/run_rq2_full.sh reproduce_rq2_rep1 reproduce_rq1_rep1
+```
+
+The six conditions are:
+
+```text
+rq2_default
+rq2_cot_only
+rq2_fairness_only
+rq2_positive_role_only
+rq2_cot_fairness
+rq2_positive_cot_fairness
+```
+
+The command generates **8,575 new methods** for the five non-Default conditions; all six conditions are evaluated with Solar. Output example:
+
+```text
+results/rq2/reproduce_rq2_rep1/rq2_cot_fairness/developer/
+results/rq2/reproduce_rq2_rep1/solar_rq2_cot_fairness/test_result/developer/scores_v1.json
+```
+
+These conditions separate CoT and fairness wording to avoid confounding their effects.
+
+## 4. Reproduce RQ3: software-development workflows
+
+**Twelve distinct configurations** cover three comparison groups:
+
+| Comparison | Configurations |
+| --- | --- |
+| Workflow structure | `raw`, `waterfall`, `scrum` |
+| Fairness-aware roles in Waterfall | `waterfall` baseline, `waterfall_pm_fair`, `waterfall_architect_fair`, `waterfall_developer_fair`, `waterfall_qa_fair`, `waterfall_all_fair` |
+| Role ablations in Waterfall | `waterfall` baseline, `no_tester`, `no_architect_tester`, `no_requirement_tester`, `developer_only` |
+
+`waterfall` is shared across groups and is generated **once per independent run**, not three times.
+
+Run all 12 configurations sequentially, including Solar evaluation:
+
+```bash
+bash scripts/run_rq3_full.sh reproduce_rq3_rep1
+```
+
+Equivalent runner:
+
+```bash
+python commands/run_rq3_revision.py \
+  --replicate-id reproduce_rq3_rep1 --start 0 --end 343 --evaluate
+```
+
+Example output locations:
+
+```text
+results/rq3_flowgen/reproduce_rq3_rep1__waterfall/final_code/
+results/rq3_flowgen/reproduce_rq3_rep1__waterfall/solar/test_result/final/scores_v1.json
+```
+
+For a small subset, use `--start 0 --end 10` with the Python runner; `--end` is exclusive.
+
+## 5. Reproduce RQ4: Fairness Monitor Agent
+
+The FMA pipeline runs **from the original task**, not from a previously generated Developer output:
+
+```text
+Original task
+  → Functional Requirements Analyst
+  → Fairness Requirements Analyst
+  → Developer
+  → Round 1: Functional Review → Functional Repair if needed
+             → Fairness Review → Fairness Repair if needed
+  → Round 2: same sequence
+  → Round 3: same sequence
+```
+
+**Current revision behavior:** Every round performs fresh functional and fairness reviews **even when a preceding round passes**. A repairer is called only when its reviewer reports issues. The fairness review uses the original task and code-level attribute evidence; upstream attribute labels are not treated as authoritative. Solar is an external evaluator and its feedback is **never supplied to the agents**.
+
+Run all 343 tasks **fresh from end to end**, followed by Solar evaluation of the Developer baseline and all three rounds:
+
+```bash
+bash scripts/run_rq4_full.sh reproduce_rq4_rep1
+```
+
+Equivalent:
+
+```bash
+python commands/run_rq4_revision.py \
+  --run-id reproduce_rq4_rep1 --start 0 --end 343 \
+  --rounds 3 --temperature 0.8 --evaluate
+```
+
+Output examples:
+
+```text
+results/rq4/reproduce_rq4_rep1/functional_requirements/
+results/rq4/reproduce_rq4_rep1/fairness_requirements/
+results/rq4/reproduce_rq4_rep1/developer/
+results/rq4/reproduce_rq4_rep1/round1/fairness_reviewer/
+results/rq4/reproduce_rq4_rep1/round1/fairness_repairer/
+results/rq4/reproduce_rq4_rep1/round2/fairness_repairer/
+results/rq4/reproduce_rq4_rep1/round3/fairness_repairer/
+results/rq4/reproduce_rq4_rep1/solar/test_result/developer/scores_v1.json
+results/rq4/reproduce_rq4_rep1/solar/test_result/round1/scores_v1.json
+results/rq4/reproduce_rq4_rep1/solar/test_result/round2/scores_v1.json
+results/rq4/reproduce_rq4_rep1/solar/test_result/round3/scores_v1.json
+```
+
+**Do not use `--post-developer-only` for an independent fresh RQ4 run.** That option deliberately reuses upstream task artifacts for a targeted post-Developer experiment.
+
+## 6. Repetitions and statistical analysis
+
+RQ1 and RQ2 already generate five methods per task/condition. For RQ3 and RQ4, repeat the **entire pipeline** using distinct run IDs so that stochastic outputs are independent:
+
+```bash
+bash scripts/run_rq3_full.sh reproduce_rq3_rep2
+bash scripts/run_rq3_full.sh reproduce_rq3_rep3
+
+bash scripts/run_rq4_full.sh reproduce_rq4_rep2
+bash scripts/run_rq4_full.sh reproduce_rq4_rep3
+```
+
+Report per-run results, the **mean and standard deviation** across runs, and uncertainty intervals when applicable. `analysis/bootstrap_cbs.py` can compute task-cluster bootstrap CIs from locally saved Solar `bias_info_files` for multiple complete repetitions. Examples:
+
+```bash
+python analysis/bootstrap_cbs.py \
+  --roots results/rq3_flowgen/reproduce_rq3_rep1__waterfall/solar \
+          results/rq3_flowgen/reproduce_rq3_rep2__waterfall/solar \
+          results/rq3_flowgen/reproduce_rq3_rep3__waterfall/solar \
+  --agent final
+
+python analysis/bootstrap_cbs.py \
+  --roots results/rq4/reproduce_rq4_rep1/solar \
+          results/rq4/reproduce_rq4_rep2/solar \
+          results/rq4/reproduce_rq4_rep3/solar \
+  --agent round3 --before-agent developer
+```
+
+These examples assume Solar scores were saved in the **same project checkout** by the standard `--evaluate` runners. For evaluations done in independent worker clones, point `--roots` to the actual clone result directories or consolidate those outputs first.
+
+## 7. Evaluating existing generated code with Solar
+
+If a generation run has already completed, it can be evaluated **without calling the LLM again**. For example:
+
+```bash
 bash commands/evaluate_solar.sh \
-  --response-dir results/rq1/smoke_rq1/temp_0.8/developer \
-  --out-dir results/rq1/smoke_rq1/solar_temp_0.8 \
-  --label developer --start 0 --end 1 --samples 1
+  --response-dir results/rq4/reproduce_rq4_rep1/round3/fairness_repairer \
+  --out-dir results/rq4/reproduce_rq4_rep1/solar \
+  --label round3 --start 0 --end 343 --samples 1
 ```
 
-RQ2 all six conditions:
+For RQ1/RQ2, set `--samples 5` and select the corresponding Developer output directory. The script generates a local `fairness_test/test_suites/config.py` from `config_template.py`; **do not execute two Solar evaluations concurrently against the same working copy**, because they share that mutable file. Use independent repository/worker copies for parallel Solar evaluation.
 
-```bash
-python commands/run_rq2_revision.py \
-  --run-id smoke_rq2 --start 0 --end 1 --samples 1
-```
+Solar preserves compact score and bias/attribute summaries. By default it prunes very large raw test logs after scoring (`SOLAR_KEEP_RAW=0`). A generated score file contains the benchmark-level fairness/attribute metrics; separately report the executable denominator.
 
-One RQ3 configuration:
+## 8. Previous completed revision runs (reference only)
 
-```bash
-python flowgen/run_flowgen.py \
-  --configuration waterfall --start 0 --end 1 --run-id smoke_waterfall
-```
+The following IDs identify the **single complete runs** retained from the October 2026 revision campaign. They are not automatically downloaded with the Git repository.
 
-One reconstructed RQ3 ablation:
+- **RQ3:** `luna_rq3_full343` (12 configurations; paths use `results/rq3_flowgen/luna_rq3_full343__<configuration>/final_code/`).
+- **RQ4:** `luna_rq4_fresh_endtoend_rep1` (complete fresh run from requirements through three review/repair rounds; `results/rq4/luna_rq4_fresh_endtoend_rep1/`). Only this final clean RQ4 run is intended for the archival results package.
 
-```bash
-python flowgen/run_flowgen.py \
-  --configuration no_requirement_tester \
-  --start 0 --end 1 --run-id smoke_no_req_tester
-```
+The completed RQ3/RQ4 campaign used separate Solar worker clones (`~/PycharmProjects/solar_worker1` through `solar_worker7`) to evaluate stages/configurations in parallel. Consequently, **its Solar score files may reside in those worker directories, not in the corresponding project-level `results/` directories**. The archive/Drive snapshot is the place to retain those generated artifacts and scores. Do not mix these original run IDs with the new `reproduce_*` IDs above.
 
-All twelve RQ3 configurations for one task:
+## 9. Resume, completeness, and cost
 
-```bash
-python commands/run_rq3_revision.py \
-  --replicate-id smoke_rq3_rep1 --start 0 --end 1 --evaluate
-```
+An interrupted generation run can generally be resumed with the **same run ID**; completed per-task files are skipped. For a genuinely new stochastic repetition, **always use a new ID**. Verify that each expected task has its output file and inspect errors before interpreting aggregate scores. Solar should be run only after generation is complete.
 
-RQ4 one task, one round:
-
-```bash
-python commands/run_rq4_revision.py \
-  --run-id smoke_rq4_rep1 --start 0 --end 1 --rounds 1 --evaluate
-```
-
-## 6. Full rebuttal experiments
-
-Run these **only after `smoke_all.sh` completes successfully and you inspect a few generated artifacts**.
-
-### RQ1 full GPT-6 Luna arm
-
-```bash
-bash scripts/run_rq1_full.sh luna_revision_rq1
-```
-
-This runs 343 tasks × 5 temperatures × 5 generations and then Solar evaluation for each temperature.
-
-### RQ2 full prompt study
-
-```bash
-bash scripts/run_rq2_full.sh luna_revision_rq2 luna_revision_rq1
-```
-
-This evaluates all six RQ2 conditions. Default is reused from the identical
-RQ1 t=0.8 Luna outputs; the other five conditions generate 343 × 5 × 5 =
-8,575 new completions.
-
-### RQ3 one complete execution
-
-```bash
-bash scripts/run_rq3_full.sh luna_rq3_run1
-```
-
-This runs all 12 configurations on all 343 tasks once and evaluates every configuration with Solar. Use `scripts/run_rq3_three_reps.sh` only later when you deliberately want three independent executions.
-
-If you prefer to run one replicate at a time:
-
-```bash
-python commands/run_rq3_revision.py \
-  --replicate-id luna_revision_rq3_rep1 --start 0 --end 343 --evaluate
-
-python commands/run_rq3_revision.py \
-  --replicate-id luna_revision_rq3_rep2 --start 0 --end 343 --evaluate
-
-python commands/run_rq3_revision.py \
-  --replicate-id luna_revision_rq3_rep3 --start 0 --end 343 --evaluate
-```
-
-### RQ4 one complete FMA execution
-
-```bash
-bash scripts/run_rq4_full.sh luna_rq4_run1
-```
-
-Equivalent explicit command:
-
-```bash
-python commands/run_rq4_revision.py \
-  --run-id luna_rq4_run1 --start 0 --end 343 --rounds 3 --evaluate
-```
-
-Later, add independent runs with new IDs:
-
-```bash
-bash scripts/run_rq4_once.sh luna_rq4_run2
-bash scripts/run_rq4_once.sh luna_rq4_run3
-```
-
-### Everything sequentially
-
-`scripts/run_all_full.sh` is kept for convenience, but the staged plan in
-`docs/STAGED_RUN_PLAN.md` is safer and is the recommended workflow for the
-revision.
-
-## 7. Resume behavior
-
-Use the **same run ID** after an interruption. Successful per-task outputs are skipped. Do not use `--overwrite` unless you intentionally want to replace a run.
-
-Use different IDs for independent stochastic repetitions, for example:
-
-```text
-luna_revision_rq3_rep1
-luna_revision_rq3_rep2
-luna_revision_rq3_rep3
-```
-
-## 8. API usage and cost
-
-All new OpenAI calls append usage to:
-
-```text
-results/api_usage.jsonl
-```
-
-View totals at any time:
+API usage and cost are recorded locally:
 
 ```bash
 python scripts/summarize_usage.py
 ```
 
-Reasoning tokens are shown separately but are not double-counted in estimated output cost.
+The underlying usage log is `results/api_usage.jsonl` and may contain operational metadata; keep it in a private experiment archive rather than automatically publishing it.
 
-## 9. Historical FlowGen hand-off
+## 10. Functional correctness and evaluation limits
 
-Read:
+The 343 Solar test suites evaluate specified *fairness metamorphic relations* and attribute-use behavior of generated methods. Exhaustive execution of the test cases encoded in a suite can detect violations **within that specified test space**; it does not establish that every possible input or the intended eligibility decision is implemented correctly. In particular, a method that always returns `True` could avoid a fairness inconsistency while violating the task's actual decision logic.
 
-- `docs/FLOWGEN_HANDOFF_AUDIT.md`
-- `docs/RQ3_ABLATION_IMPLEMENTATION.md`
+Many benchmark tasks do not state a unique policy or threshold, so a complete reference functional oracle cannot be inferred without adding new semantics. **Executable rate**, **Pass@attribute**, and **CBS** must therefore be reported as distinct measures. Do not claim full semantic functional correctness from them alone. `docs/FUNCTIONAL_CORRECTNESS_PLAN.md` discusses optional stronger validation and the alternative of narrowing functional-correctness claims.
 
-Important historical facts:
+Solar measures the benchmark's operational fairness definition, including its explicitly designated sensitive attributes. Task-specific functional relevance and benchmark-designated sensitivity can disagree; report and discuss such disagreements instead of silently modifying the benchmark or hardcoding Solar attributes into FMA.
 
-- raw GPT and Waterfall had 343-task artifacts;
-- Scrum and fairness-role experiments in the hand-off only covered a common 70-task subset;
-- the historical 343-task Waterfall logs already contained a fairness sentence in the QA prompt, so they are not a clean no-fairness baseline;
-- the role-ablation source was missing and has therefore been explicitly reconstructed for the revision.
+## 11. Reproducibility, security, and provenance
 
-For the new revision campaign, do not mix those historical FlowGen outputs with the new runs.
+- `dataset/prompts.jsonl`, `fairness_test/test_suites/`, RQ runners, and workflow JSON files are required reproducibility inputs.
+- `fairness_test/test_suites/config.py` is machine-generated; the tracked `config_template.py` is the source template.
+- Do **not** commit `.env`, credentials, generated `results/`, caches, large raw logs, or local worker archives.
+- The original FlowGen hand-off is documented in `docs/FLOWGEN_HANDOFF_AUDIT.md`. Some earlier files and staged experiment plans describe historical behavior; the current revised RQ4 run uses the **fresh-review-per-round** pipeline described in this README.
+- Use the Git revision and model configuration from the actual run for exact provenance. Model/API behavior and non-deterministic generations may vary over time.
 
-## 10. Functional-correctness reviewer comment
-
-The benchmark currently specifies which attributes are related/sensitive, but many task docstrings do **not** provide a unique executable ground-truth decision rule (for example, they do not state an exact financial-aid threshold). Therefore a true logical-correctness oracle cannot be generated automatically from the existing benchmark without inventing new task semantics.
-
-Do not present Pass@attribute as full functional correctness. The stronger functional-validation experiment should be handled separately using manually defined/adjudicated executable oracles for a documented task subset, or the claim should be narrowed to attribute-level task alignment. This is intentionally not silently fabricated by the runner.
-
-## 11. Post-run completeness and confidence intervals
-
-A concise execution checklist is in `docs/EXPERIMENT_RUNBOOK.md`.
-
-For a campaign launched with `bash scripts/run_all_full.sh luna_revision`, verify that every expected task/replicate was produced:
-
-```bash
-python scripts/check_campaign.py --tag luna_revision --full
-```
-
-For the one-task smoke suite:
-
-```bash
-python scripts/check_campaign.py --tag smoke1 --smoke
-```
-
-Example RQ3 95% task-cluster bootstrap CI for Waterfall:
-
-```bash
-python analysis/bootstrap_cbs.py \
-  --roots results/rq3_flowgen/luna_revision_rq3_rep1__waterfall/solar \
-          results/rq3_flowgen/luna_revision_rq3_rep2__waterfall/solar \
-          results/rq3_flowgen/luna_revision_rq3_rep3__waterfall/solar \
-  --agent final
-```
-
-Example paired RQ4 Developer-to-Round-3 FMA reduction:
-
-```bash
-python analysis/bootstrap_cbs.py \
-  --roots results/rq4/luna_revision_rq4_rep1/solar \
-          results/rq4/luna_revision_rq4_rep2/solar \
-          results/rq4/luna_revision_rq4_rep3/solar \
-  --agent round3 --before-agent developer
-```
-
-### Important RQ3 revision compatibility behavior
-
-For current OpenAI models, `FLOWGEN_BENCHMARK_MODE=1` is enabled by default.
-This is a neutral, identical constraint for all RQ3 configurations: treat each
-SocialBias-Bench prompt as a self-contained small coding task, preserve the
-provided Boolean method interface, and produce a concrete best-effort method
-instead of requesting an external policy or refusing an underspecified task.
-It does not mention fairness. Set `FLOWGEN_BENCHMARK_MODE=0` only to reproduce
-the unadapted 2025 FlowGen prompting behavior.
-
-FlowGen responses are also normalized to the final method definition before
-Solar evaluation, because current models may surround code with Markdown or
-explanatory prose. Non-executable generations are explicitly marked failed and
-reported through the executable-rate metric.
+For additional details, see `docs/EXPERIMENT_RUNBOOK.md`, `docs/RQ3_ABLATION_IMPLEMENTATION.md`, and `docs/FUNCTIONAL_CORRECTNESS_PLAN.md`.
