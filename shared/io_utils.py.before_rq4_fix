@@ -1,0 +1,129 @@
+"""
+shared/io_utils.py
+
+Common I/O helpers used by all agents.
+"""
+
+import json
+import os
+import re
+from typing import Iterator
+
+
+# ---------------------------------------------------------------------------
+# JSONL readers / writers
+# ---------------------------------------------------------------------------
+
+def read_jsonl(path: str) -> Iterator[dict]:
+    """Yield parsed JSON objects from a JSONL file, skipping blank lines."""
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                yield json.loads(line)
+
+
+def read_jsonl_list(path: str) -> list:
+    return list(read_jsonl(path))
+
+
+def write_jsonl(path: str, records: list[dict]) -> None:
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        for rec in records:
+            json.dump(rec, f, ensure_ascii=False)
+            f.write("\n")
+
+
+def append_jsonl(path: str, record: dict) -> None:
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
+        json.dump(record, f, ensure_ascii=False)
+        f.write("\n")
+
+
+# ---------------------------------------------------------------------------
+# Code cleaning
+# ---------------------------------------------------------------------------
+
+def clean_code(text: str) -> str:
+    """Normalize an LLM response to one standalone Python method.
+
+    Newer models sometimes add prose or Markdown even when asked for code only.
+    We preserve the generated logic but isolate the final top-level ``def``
+    block so Solar can execute it. If no usable function is found, return a
+    non-code marker; Solar will classify that sample as non-executable.
+    """
+    if not text:
+        return "# NO CODE GENERATED"
+
+    # Prefer fenced code when present, but also keep the whole response as a
+    # fallback. The final function definition is preferred because repair
+    # prompts may echo an original method before a revised method.
+    blocks = re.findall(r"```(?:python|py)?\s*\n([\s\S]*?)```", text, flags=re.IGNORECASE)
+    candidates = list(blocks) + [text]
+
+    for candidate in reversed(candidates):
+        lines = candidate.splitlines()
+        starts = []
+        for i, line in enumerate(lines):
+            m = re.match(r"^(\s*)def\s+[A-Za-z_]\w*\s*\(", line)
+            if m:
+                starts.append((i, len(m.group(1).expandtabs(4))))
+        if not starts:
+            continue
+
+        start, base_indent = starts[-1]
+        out = [lines[start]]
+        saw_body = False
+        for line in lines[start + 1:]:
+            if not line.strip():
+                out.append(line)
+                continue
+            indent = len(line) - len(line.lstrip(" \t"))
+            if indent <= base_indent and saw_body:
+                break
+            if indent > base_indent:
+                saw_body = True
+                out.append(line)
+            else:
+                break
+        code = "\n".join(out).strip()
+        if code:
+            try:
+                compile(code, "<generated_method>", "exec")
+                return code
+            except SyntaxError:
+                pass
+
+    return "# NO CODE GENERATED"
+
+
+def extract_json_block(text: str) -> dict:
+    """
+    Robustly parse a JSON object from an LLM response.
+    Strips markdown fences before parsing.
+    Returns an empty dict on failure (caller decides how to handle).
+    """
+    text = text.strip()
+    text = re.sub(r"```(?:json)?", "", text).replace("```", "").strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return {}
+
+
+# ---------------------------------------------------------------------------
+# Path helpers
+# ---------------------------------------------------------------------------
+
+def task_code_path(base_dir: str, task_id: str) -> str:
+    return os.path.join(base_dir, f"task_{task_id}_generated_code.jsonl")
+
+
+def task_review_path(base_dir: str, task_id: str) -> str:
+    return os.path.join(base_dir, f"task_{task_id}_review.jsonl")
+
+
+def task_requirements_path(base_dir: str, task_id: str) -> str:
+    return os.path.join(base_dir, f"task_{task_id}_requirements.jsonl")

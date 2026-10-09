@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environments and credentials
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+*.pem
+*.key
+
+# IDE settings
+.idea/
+.vscode/
+
+# Experiment outputs
+/results/
+/outputs/
+/outputs*/
+/backups/
+/backup_postdev*/
+/rq4_prompt_backups/
+
+# Experiment logs
+/rq3*_logs*/
+/rq4*_logs*/
+*.log
+
+# Generated FlowGen workspaces
+/flowgen/workspace/
+/flowgen/workspaces/
+
+# Local Solar configuration
+/fairness_test/test_suites/config.py
+
+# Archives
+*.zip
+*.tar.gz
+
+# Temporary files
+*.tmp
+*.bak
+*~

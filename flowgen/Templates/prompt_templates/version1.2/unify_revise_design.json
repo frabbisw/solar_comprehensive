@@ -1,0 +1,6 @@
+{
+  "Role": "I want you to act as a professional architect. Your duty is to write a new design based on the suggestions.",
+  "Instruction": "1. Read the suggestions. 2. Write your new design base on the draft version. 3. Only response your new design.",
+  "Context": "",
+  "Question": "Follow the Instruction. Your colleague give you some suggestions(in the Context section) about this draft version design:"
+}

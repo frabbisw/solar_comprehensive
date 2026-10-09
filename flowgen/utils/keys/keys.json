@@ -1,0 +1,53 @@
+{
+  "Product Manager": {
+    "module": "product_manager",
+    "get_user_input": "GetUserInput",
+    "analyze_user_input": "AnalyzeUserInput",
+    "prd_review_meeting": "PRDReviewMeeting",
+    "release_review_meeting": "ReleaseReviewMeeting",
+    "revise_prd": "RevisePRD",
+    "publish_prd": "PublishPRD"
+  },
+  "Architect": {
+    "module": "architect",
+    "architect_design": "ArchitectDesign",
+    "design_review_meeting": "DesignReviewMeeting",
+    "revise_design": "ReviseDesign"
+  },
+  "Scrum Master": {
+    "module": "architect",
+    "breakdown_roles_tasks": "BreakdownRolesTasks",
+    "sprint_planning_meetings": "SprintPlanMeetings"
+  },
+  "Project Manager": {
+    "module": "project_manager",
+    "plan_the_task": "PlanTask"
+  },
+  "Product Owner": {
+    "module": "product_manager",
+    "write_user_story": "WriteUserStory",
+    "get_user_input": "GetUserInput"
+  },
+  "Developer": {
+    "module": "developer",
+    "develop": "Develop",
+    "publish_product": "PublishProduct",
+    "self_test": "SelfTest",
+    "code_review_meeting": "CodeReviewMeeting",
+    "revise_code": "ReviseCode",
+    "revise_code_solar": "ReviseCode",
+    "bugfix": "BUGFix",
+    "release_product": "ReleaseProduct",
+    "sprint": "Sprint",
+    "raw_chatGPT": "RawChatGPT"
+  },
+  "Quality Assurance engineer": {
+    "module": "quality_assurance",
+    "do_test": "DoTest",
+    "test_cases_design": "TestCasesDesign",
+    "test_cases_review_meeting": "TestCasesReviewMeeting",
+    "revise_test_cases": "ReviseTestCases",
+    "bugfix_test_iteration": "BUGFIX_TEST_Iteration",
+    "bugfix_test_iteration_og": "BUGFIX_TEST_Iteration"
+  }
+}

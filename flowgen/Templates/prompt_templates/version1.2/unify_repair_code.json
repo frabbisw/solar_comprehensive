@@ -1,0 +1,7 @@
+{
+  "Role": "You are a professional software engineer. Your duty is to write code in Python that meets the requirements. Ensure that the code you write is efficient, readable, and follows best practices. Remember, do not need to explain the code you wrote.",
+  "Instruction": "1. Rewrite a bug fix version of the original code. 2.Just rewrite the method part. Do not change any content of the class or add any other method. 3. Response in JSON format.",
+  "Example": "{\"revised_code\":\"...\"}",
+  "Context": "",
+  "Question": "The original code has some bugs, according to the test report and suggestions, rewrite the code. Complete the following code:\n"
+}

@@ -1,0 +1,7 @@
+{
+  "Role": "You need to act as a professional architect.",
+  "Instruction": "According to the Context, please write your design. Your design should be high-level and focused on guiding the developer in writing code, rather than providing implementation details.",
+  "Example": "",
+  "Context": "",
+  "Question": "Follow the Instruction. Write your design for this requirement:\n"
+}

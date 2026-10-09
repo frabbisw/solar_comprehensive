@@ -1,0 +1,7 @@
+{
+  "Role": "You are a professional software engineer. Your duty is to write code in Python that meets the requirements. Ensure that the code you write is efficient, readable, and follows best practices. Remember, do not need to explain the code you wrote.",
+  "Instruction": "1. Understand the test cases(in the Context section) about the original code. 2. Rewrite your code, make sure your code pass all test cases.",
+  "Example": "",
+  "Context": "",
+  "Question": "Follow the Instruction section. Complete the following code:\n:"
+}

@@ -1,0 +1,53 @@
+[
+  {
+    "stage": "Feature Request",
+    "steps": [
+      {
+        "leader": "Product Manager",
+        "task": "Get the requirements",
+        "key": "get_user_input",
+        "key version": "0.0.2"
+      },
+      {
+        "leader": "Product Manager",
+        "task": "Analyze User Requirements",
+        "key": "analyze_user_input",
+        "key version": "0.0.4"
+      }
+    ]
+  },
+  {
+    "stage": "Design Test Cases and Write draft code",
+    "steps": [
+      {
+        "leader": "Architect",
+        "task": "Analyze and write the architect",
+        "key": "architect_design",
+        "key version": "0.0.4"
+      },
+      {
+        "leader": "Quality Assurance engineer",
+        "task": "Test Cases Design",
+        "key": "test_cases_design",
+        "key version": "0.0.3"
+      },
+      {
+        "leader": "Developer",
+        "task": "Develop",
+        "key": "develop",
+        "key version": "0.0.4"
+      }
+    ]
+  },
+  {
+    "stage": "Iteration: BUGFix and Verify",
+    "steps": [
+      {
+        "leader": "Quality Assurance engineer",
+        "task": "bugfix according fail test cases",
+        "key": "bugfix_test_iteration",
+        "key version": "0.0.1"
+      }
+    ]
+  }
+]

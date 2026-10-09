@@ -1,0 +1,5 @@
+openai==2.26.0
+python-dotenv==1.2.2
+pytest==9.0.2
+typer==0.24.1
+textX==4.3.0

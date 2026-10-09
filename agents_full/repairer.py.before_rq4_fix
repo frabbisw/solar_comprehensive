@@ -1,0 +1,79 @@
+"""Functional Repairer for RQ4 (fairness-unaware)."""
+from __future__ import annotations
+
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from shared.base_agent import BaseAgent
+from shared.llm_client import chat
+from shared.io_utils import clean_code, read_jsonl_list, task_code_path, task_review_path, append_jsonl
+
+SYSTEM_PROMPT = (
+    "You are a functional code repairer. Fix only the functional fault described by the reviewer. "
+    "Do not add unrelated decision factors. Keep the exact method signature and docstring. "
+    "Output ONLY the complete fixed method starting from def, with no markdown or explanation."
+)
+
+
+class RepairerAgent(BaseAgent):
+    extra_args = [
+        (["--code_dir"], {"required": True}),
+        (["--review_dir"], {"required": True}),
+        (["--output_dir"], {"required": True}),
+    ]
+
+    def process_task(self, task_id: str, prompt: str, args) -> None:
+        code_path = task_code_path(args.code_dir, task_id)
+        review_path = task_review_path(args.review_dir, task_id)
+        out_path = task_code_path(args.output_dir, task_id)
+        if not os.path.exists(code_path) or not os.path.exists(review_path):
+            print(f"  SKIP task {task_id}: missing inputs")
+            return
+
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        completed = 0
+        if os.path.exists(out_path):
+            try:
+                completed = len(read_jsonl_list(out_path))
+            except Exception:
+                completed = 0
+
+        code_rows = read_jsonl_list(code_path)
+        review_rows = read_jsonl_list(review_path)
+        n = min(args.num_samples, len(code_rows), len(review_rows))
+        if completed >= n:
+            print(f"Output complete ({completed}/{n}), skipping: {out_path}")
+            return
+        for i in range(completed, n):
+            code_row = code_rows[i]
+            code = code_row.get("generated_code", "")
+            review = review_rows[i]
+
+            if code_row.get("fma_converged") or review.get("skipped_after_convergence"):
+                append_jsonl(out_path, {"generated_code": code, "repaired": False, "fma_converged": True})
+                continue
+
+            if review.get("pass", False):
+                append_jsonl(out_path, {"generated_code": code, "repaired": False, "fma_converged": False})
+                continue
+
+            user_msg = (
+                f"TASK:\n{prompt}\n\nMETHOD:\n{code}\n\n"
+                f"FUNCTIONAL FAULT:\n{review.get('issue', '')}"
+            )
+            raw = chat(
+                SYSTEM_PROMPT,
+                user_msg,
+                model=args.model,
+                temperature=args.temperature,
+                max_tokens=1024,
+            )
+            append_jsonl(
+                out_path,
+                {"generated_code": clean_code(raw), "repaired": True, "fma_converged": False},
+            )
+
+
+if __name__ == "__main__":
+    RepairerAgent().run_cli()

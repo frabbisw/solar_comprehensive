@@ -1,0 +1,35 @@
+[
+  {
+    "stage": "Feature Request",
+    "steps": [
+      {
+        "leader": "Product Owner",
+        "task": "Get the requirements",
+        "key": "get_user_input",
+        "key version": "0.0.2"
+      }
+    ]
+  },
+  {
+    "stage": "Scrum",
+    "steps": [
+      {
+        "leader": "Scrum Master",
+        "task": "sprint planning meetings",
+        "key": "sprint_planning_meetings",
+        "key version": "0.0.2"
+      }
+    ]
+  },
+  {
+    "stage": "Sprint",
+    "steps": [
+      {
+        "leader": "Developer",
+        "task": "generate roles to finish the tasks",
+        "key": "sprint",
+        "key version": "0.0.3"
+      }
+    ]
+  }
+]

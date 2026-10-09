@@ -1,0 +1,7 @@
+{
+  "Role": "I want you to act as a different roles and then give some suggestions about how to revise the test cases.",
+  "Instruction": "1. Read the Context section. 2. Act as an Architect, give your suggestions. 3. Act as a Developer, give your suggestions. 4. Response in JSON format.",
+  "Example": "{\"Architect\":\"Suggestion\",\"Developer\":\"Suggestion\"}",
+  "Context": "",
+  "Question": "Follow the Instruction. The Context section include the test cases."
+}

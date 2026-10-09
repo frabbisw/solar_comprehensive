@@ -1,0 +1,7 @@
+{
+  "Role": "I want you to act as a ",
+  "Instruction": "1. Read the discussion history(In Context section). 2. Base on your role, if you have something to say, say it.",
+  "Example": "To create a product, we should ... Let's ... I think the first step is ... In order to develop a product, it is important that we ... Firstly, we should ... I will ...",
+  "Context": "",
+  "Question": "Follow the Instruction. Base on your role to take part in the discussion, please response no more than one sentence."
+}

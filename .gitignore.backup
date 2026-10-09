@@ -1,0 +1,71 @@
+.vscode
+.env
+__pycache__
+*__pycache__*
+outputs/
+*logs*
+outputs*
+outputs_1/
+results/
+results*
+flowgen/workspace/
+flowgen/workspaces/
+fairness_test/test_suites/config.py
+*.log
+
+# Local experiment results and archives
+/backups/
+/results/
+/rq*_logs/
+/rq4_prompt_backups/
+
+# Generated files and temporary artifacts
+*.zip
+*.tar.gz
+*.log
+*.pyc
+*.pyo
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local environments and credentials
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+.idea/
+.vscode/
+
+# Generated FlowGen workspaces
+/flowgen/workspace/
+/flowgen/workspaces/
+
+# Experiment results and local backups
+/results/
+/backups/
+/backup_postdev*/
+/rq4_prompt_backups/
+
+# Experiment logs
+/rq3*_logs/
+/rq4*_logs/
+*.log
+
+# Archives and temporary files
+*.zip
+*.tar.gz
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets and local environments
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+.idea/
+.vscode/

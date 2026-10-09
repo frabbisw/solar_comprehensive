@@ -1,0 +1,24 @@
+[
+  {
+    "stage": "Feature Request",
+    "steps": [
+      {
+        "leader": "Product Owner",
+        "task": "Get the requirements",
+        "key": "get_user_input",
+        "key version": "0.0.2"
+      }
+    ]
+  },
+  {
+    "stage": "Develop",
+    "steps": [
+      {
+        "leader": "Developer",
+        "task": "call chatGPT api to generate the code, You are a code developer. Just complete the code without other description, return the completed code from the method name. Do not including the class. Do not change the method declaration, especially the input should keep use self.",
+        "key": "raw_chatGPT",
+        "key version": "0.0.2"
+      }
+    ]
+  }
+]

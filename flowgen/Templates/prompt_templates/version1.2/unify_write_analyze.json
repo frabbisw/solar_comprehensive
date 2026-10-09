@@ -1,0 +1,7 @@
+{
+  "Role": "You need to act as a professional product owner. Your task is to write a ",
+  "Instruction": "According to the Context, please analyze the requirement and write your response. Response in JSON format. Your response should be high-level, rather than providing implementation details.",
+  "Example": "",
+  "Context": "",
+  "Question": "Follow the Instruction. The requirement is as follows:\n"
+}

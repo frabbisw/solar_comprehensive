@@ -1,0 +1,6 @@
+{
+  "Role": "You need to act as a professional product owner. Your duty is to revise the document based on the suggestions.",
+  "Instruction": "1. Read the suggestions. 2. Revise your draft version document. 3. Response in JSON format. 4. REMEMBER: Your analysis should be high-level, rather than providing implementation details.",
+  "Context": "",
+  "Question": "Follow the Instruction. Your colleague give you some suggestions(in the Context section) about this draft document:"
+}

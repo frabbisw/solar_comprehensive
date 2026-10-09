@@ -1,0 +1,131 @@
+"""Fairness Reviewer for the post-Developer RQ4 FMA loop.
+
+The reviewer performs oracle-free static analysis against the attribute
+classification produced upstream. It does not see Solar results and does not
+reclassify attributes from outside social assumptions.
+"""
+from __future__ import annotations
+
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from shared.base_agent import BaseAgent
+from shared.io_utils import (
+    append_jsonl,
+    extract_json_block,
+    read_jsonl_list,
+    task_code_path,
+    task_requirements_path,
+    task_review_path,
+)
+from shared.llm_client import chat
+
+SYSTEM_PROMPT = (
+    "You are the Fairness Reviewer in an oracle-free code-generation pipeline. Audit the GENERATED METHOD "
+    "against the supplied REQUIRED and RESTRICTED attribute classification. Treat that classification as "
+    "authoritative; do not reclassify attributes using outside social assumptions. Report exactly two kinds of "
+    "faults: (1) restricted_attribute_used when a restricted attribute influences the decision or output, directly "
+    "or indirectly (including through a local alias or derived condition); and (2) required_attribute_missing when "
+    "a required attribute does not influence the decision logic. Judge executable decision logic, not mentions in "
+    "comments, docstrings, or surrounding task text. Do not edit the code. For each issue provide type, attribute, "
+    "reason, and a short repair_hint. Return exactly one JSON object: either {\"pass\":true,\"issues\":[]} or "
+    "{\"pass\":false,\"issues\":[{\"type\":\"restricted_attribute_used|required_attribute_missing\","
+    "\"attribute\":\"name\",\"reason\":\"...\",\"repair_hint\":\"...\"}]}."
+)
+
+
+class BiasAwareReviewerAgent(BaseAgent):
+    extra_args = [
+        (["--code_dir"], {"required": True}),
+        (["--spec_dir"], {"required": True, "help": "Fairness requirements directory"}),
+        (["--output_dir"], {"required": True}),
+    ]
+
+    def process_task(self, task_id: str, prompt: str, args) -> None:
+        code_path = task_code_path(args.code_dir, task_id)
+        spec_path = task_requirements_path(args.spec_dir, task_id)
+        out_path = task_review_path(args.output_dir, task_id)
+        if not os.path.exists(code_path) or not os.path.exists(spec_path):
+            print(f"  SKIP task {task_id}: missing code/spec")
+            return
+
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        completed = 0
+        if os.path.exists(out_path):
+            try:
+                completed = len(read_jsonl_list(out_path))
+            except Exception:
+                completed = 0
+
+        code_rows = read_jsonl_list(code_path)
+        spec_rows = read_jsonl_list(spec_path)
+        spec = spec_rows[0] if spec_rows else {}
+        required = spec.get("required_attributes", [])
+        restricted = spec.get("restricted_attributes", [])
+        prd = str(spec.get("PRD", ""))
+
+        target = min(args.num_samples, len(code_rows))
+        if completed >= target:
+            print(f"Output complete ({completed}/{target}), skipping: {out_path}")
+            return
+
+        for i in range(completed, target):
+            row = code_rows[i]
+            code = row.get("generated_code", "")
+
+            if row.get("fma_converged"):
+                append_jsonl(
+                    out_path,
+                    {"pass": True, "issues": [], "skipped_after_convergence": True},
+                )
+                continue
+
+            user_msg = (
+                f"FAIRNESS-AWARE PRD:\n{prd}\n\n"
+                f"REQUIRED ATTRIBUTES:\n{required}\n\n"
+                f"RESTRICTED ATTRIBUTES:\n{restricted}\n\n"
+                f"GENERATED METHOD TO AUDIT:\n{code}"
+            )
+            raw = chat(
+                SYSTEM_PROMPT,
+                user_msg,
+                model=args.model,
+                temperature=args.temperature,
+                max_tokens=512,
+            )
+            result = extract_json_block(raw)
+            if not isinstance(result, dict):
+                result = {}
+
+            issues = result.get("issues", [])
+            if not isinstance(issues, list):
+                issues = [issues] if isinstance(issues, dict) else []
+            issues = [x for x in issues if isinstance(x, dict) and x]
+            explicit_pass = result.get("pass")
+
+            if issues:
+                normalized = {"pass": False, "issues": issues}
+            elif explicit_pass is True:
+                normalized = {"pass": True, "issues": []}
+            elif explicit_pass is False:
+                # pass=false with no issue is contradictory and must not be
+                # treated as either a clean pass or a repair instruction.
+                normalized = {
+                    "pass": False,
+                    "issues": [],
+                    "_schema_error": True,
+                    "raw_response": raw,
+                }
+            else:
+                normalized = {
+                    "pass": False,
+                    "issues": [],
+                    "_parse_error": True,
+                    "raw_response": raw,
+                }
+            append_jsonl(out_path, normalized)
+
+
+if __name__ == "__main__":
+    BiasAwareReviewerAgent().run_cli()

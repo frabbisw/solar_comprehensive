@@ -1,0 +1,18 @@
+[
+  {
+    "stage": "Program Design",
+    "steps": [
+      {"leader": "Architect", "task": "Analyze and write the architect", "key": "architect_design", "key version": "0.0.2"},
+      {"leader": "Architect", "task": "Design Review Meeting", "key": "design_review_meeting", "key version": "0.0.1"},
+      {"leader": "Architect", "task": "Revise and Publish design", "key": "revise_design", "key version": "0.0.1"}
+    ]
+  },
+  {
+    "stage": "Development",
+    "steps": [
+      {"leader": "Developer", "task": "Develop", "key": "develop", "key version": "0.0.2"},
+      {"leader": "Developer", "task": "Code Review Meeting", "key": "code_review_meeting", "key version": "0.0.4"},
+      {"leader": "Developer", "task": "Revise and Publish code", "key": "revise_code", "key version": "0.0.4"}
+    ]
+  }
+]

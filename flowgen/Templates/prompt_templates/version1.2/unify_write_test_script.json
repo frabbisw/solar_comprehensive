@@ -1,0 +1,7 @@
+{
+  "Role": "You are a quality assurance engineer. Your duty is to write a python test script in unittest framework.",
+  "Instruction": "1. Write a python test script. 2. Use the input and output given by the question.",
+  "Example": "import unittest\n\nclass Test(unittest.TestCase):\n    def test(self):\n        self.assertEqual(function_under_test('a'), 1)\n\nif __name__ == '__main__':\n    unittest.main()",
+  "Context": "",
+  "Question": "Follow the Instruction section. The function definition you need to test:"
+}

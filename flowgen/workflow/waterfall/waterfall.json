@@ -1,0 +1,112 @@
+[
+  {
+    "stage": "Requirement Analysis",
+    "steps": [
+      {
+        "leader": "Product Manager",
+        "task": "Get the requirements",
+        "key": "get_user_input",
+        "key version": "0.0.2"
+      },
+      {
+        "leader": "Product Manager",
+        "task": "Analyze and write the PRD draft",
+        "key": "analyze_user_input",
+        "key version": "0.0.2"
+      },
+      {
+        "leader": "Product Manager",
+        "task": "PRD review meeting",
+        "key": "prd_review_meeting",
+        "key version": "0.0.1"
+      },
+      {
+        "leader": "Product Manager",
+        "task": "Revise and Publish PRD",
+        "key": "revise_prd",
+        "key version": "0.0.1"
+      }
+    ]
+  },
+  {
+    "stage": "Program Design",
+    "steps": [
+      {
+        "leader": "Architect",
+        "task": "Analyze and write the architect",
+        "key": "architect_design",
+        "key version": "0.0.2"
+      },
+      {
+        "leader": "Architect",
+        "task": "Design Review Meeting",
+        "key": "design_review_meeting",
+        "key version": "0.0.1"
+      },
+      {
+        "leader": "Architect",
+        "task": "Revise and Publish design",
+        "key": "revise_design",
+        "key version": "0.0.1"
+      }
+    ]
+  },
+  {
+    "stage": "Development",
+    "steps": [
+      {
+        "leader": "Developer",
+        "task": "Develop",
+        "key": "develop",
+        "key version": "0.0.2"
+      },
+      {
+        "leader": "Developer",
+        "task": "Code Review Meeting",
+        "key": "code_review_meeting",
+        "key version": "0.0.4"
+      },
+      {
+        "leader": "Developer",
+        "task": "Revise and Publish code",
+        "key": "revise_code",
+        "key version": "0.0.4"
+      }
+    ]
+  },
+  {
+    "stage": "Testing and Bugfix",
+    "steps": [
+      {
+        "leader": "Quality Assurance engineer",
+        "task": "Test Cases Design",
+        "key": "test_cases_design",
+        "key version": "0.0.1"
+      },
+      {
+        "leader": "Quality Assurance engineer",
+        "task": "Test Cases Review Meeting",
+        "key": "test_cases_review_meeting",
+        "key version": "0.0.1"
+      },
+      {
+        "leader": "Quality Assurance engineer",
+        "task": "Revise Test Cases",
+        "key": "revise_test_cases",
+        "key version": "0.0.1"
+      },
+      {
+        "leader": "Developer",
+        "task": "Self test according the test cases",
+        "key": "self_test",
+        "key version": "0.0.1"
+      },
+      {
+        "leader": "Quality Assurance engineer",
+        "task": "bugfix according fail test cases",
+        "key": "bugfix_test_iteration_og",
+        "key version": "0.0.1"
+      }
+    ]
+  }
+]
